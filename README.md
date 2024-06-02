@@ -18,7 +18,7 @@ Add the following to your pubspec.yaml file:
 
 ```yaml
 dependencies:
-  i3config: 1.0.0
+  i3config: 1.0.1
 ```
 
 or 
