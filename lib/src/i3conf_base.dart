@@ -1,4 +1,3 @@
-
 import 'package:i3config/src/models.dart';
 export 'package:i3config/src/models.dart';
 
@@ -36,6 +35,7 @@ class I3ConfigParser {
     for (var line in lines) {
       line = line.trim();
 
+      // Skip empty lines and comments
       if (line.isEmpty || line.startsWith('#')) {
         continue;
       }
@@ -105,9 +105,17 @@ class I3ConfigParser {
       // Treat any other line inside a section as a property
       if (sectionStack.isNotEmpty) {
         final propertyParts = line.split(RegExp(r'\s+'));
+        
         if (propertyParts.length == 2) {
           final key = propertyParts[0];
           final value = propertyParts[1];
+          final property = Property(key, value);
+          sectionStack.last.properties[key] = value;
+          sectionStack.last.children.add(property);
+          continue;
+        } else if (propertyParts.length > 2) {
+          final key = propertyParts[0];
+          final value = propertyParts.sublist(1).join(' ');
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);

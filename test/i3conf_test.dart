@@ -3,6 +3,26 @@ import 'package:i3config/i3config.dart';
 
 void main() {
   group('I3ConfigParser', () {
+    
+    test('parses simple section', () {
+      final configContent = '''
+bar {
+  status_command i3status -c /home/\$USER/.config/i3status/i3status.conf
+}
+      ''';
+
+      final parser = I3ConfigParser(configContent);
+      final config = parser.parse();
+
+      expect(config.elements.length, 1);
+      expect(config.elements[0], isA<Section>());
+
+      final section = config.elements[0] as Section;
+      expect(section.name, 'bar');
+      expect(section.properties['status_command'],
+          'i3status -c /home/\$USER/.config/i3status/i3status.conf');
+    });
+
     test('parses simple properties', () {
       final configContent = '''
       general {
