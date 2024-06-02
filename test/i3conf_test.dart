@@ -23,6 +23,28 @@ bar {
           'i3status -c /home/\$USER/.config/i3status/i3status.conf');
     });
 
+    test('parses section variable', () {
+      final configContent = '''
+tztime local {
+        format = "%Y-%m-%d %H:%M:%S"
+        hide_if_equals_localtime = true
+}
+      ''';
+
+      final parser = I3ConfigParser(configContent);
+      final config = parser.parse();
+
+      expect(config.elements.length, 1);
+      expect(config.elements[0], isA<Section>());
+
+      final section = config.elements[0] as Section;
+      expect(section.module, 'tztime');
+      expect(section.moduleName, 'local');
+      expect(section.properties.length, 2);
+      expect(section.properties['format'], "%Y-%m-%d %H:%M:%S");
+      expect(section.properties['hide_if_equals_localtime'], "true");
+    });
+
     test('parses simple properties', () {
       final configContent = '''
       general {

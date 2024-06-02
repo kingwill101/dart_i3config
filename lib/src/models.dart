@@ -25,6 +25,22 @@ class Section extends ConfigElement {
   String toString() {
     return 'Section(name: $name, properties: $properties, children: $children)';
   }
+
+  String get module {
+    if (name.split(' ').length == 2) {
+      return name.split(' ')[0];
+    } else {
+      return name;
+    }
+  }
+
+  String get moduleName {
+    if (name.split(' ').length == 2) {
+      return name.split(' ')[1];
+    } else {
+      return '';
+    }
+  }
 }
 
 class ArrayElement extends ConfigElement {
