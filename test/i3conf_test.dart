@@ -3,7 +3,16 @@ import 'package:i3config/i3config.dart';
 
 void main() {
   group('I3ConfigParser', () {
-    
+    test('config extension', () {
+      final configContent = '''
+bar {
+  status_command i3status -c /home/\$USER/.config/i3status/i3status.conf
+}
+      ''';
+      final config = I3Config.parse(configContent);
+      expect(config.elements.length, 1);
+    });
+
     test('parses simple section', () {
       final configContent = '''
 bar {

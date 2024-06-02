@@ -1,6 +1,8 @@
 import 'package:i3config/src/models.dart';
 export 'package:i3config/src/models.dart';
 
+export 'package:i3config/src/extension.dart';
+
 class I3ConfigParser {
   final String configContent;
 
@@ -105,7 +107,7 @@ class I3ConfigParser {
       // Treat any other line inside a section as a property
       if (sectionStack.isNotEmpty) {
         final propertyParts = line.split(RegExp(r'\s+'));
-        
+
         if (propertyParts.length == 2) {
           final key = propertyParts[0];
           final value = propertyParts[1];

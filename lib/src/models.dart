@@ -1,16 +1,20 @@
+import 'package:i3config/src/i3conf_base.dart' as parser;
+
 class I3Config {
   List<ConfigElement> elements = [];
 
   I3Config();
-  factory I3Config.parse(String configContent) {
-    return I3Config.parse(configContent);
-  }
 
   @override
   String toString() {
     return 'I3Config(elements: $elements)';
   }
+
+   static parse(String configContent) {
+    return parser.I3ConfigParser(configContent).parse();
+  }
 }
+
 
 abstract class ConfigElement {}
 
