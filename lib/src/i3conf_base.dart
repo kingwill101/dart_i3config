@@ -1,7 +1,6 @@
 import 'package:i3config/src/models.dart';
 export 'package:i3config/src/models.dart';
 
-export 'package:i3config/src/extension.dart';
 
 class I3ConfigParser {
   final String configContent;

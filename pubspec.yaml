@@ -1,7 +1,7 @@
 name: i3config
 description: Read i3 config files
 
-version: 1.0.1+2
+version: 1.0.1+3
 repository: https://github.com/kingwill101/dart_i3config
 
 environment:
