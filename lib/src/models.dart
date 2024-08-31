@@ -10,13 +10,42 @@ class I3Config {
     return 'I3Config(elements: $elements)';
   }
 
-   static parse(String configContent) {
+  static parse(String configContent) {
     return parser.I3ConfigParser(configContent).parse();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'elements': elements.map((e) => e.toJson()).toList(),
+    };
+  }
+
+  factory I3Config.fromJson(Map<String, dynamic> json) {
+    final config = I3Config();
+    config.elements = (json['elements'] as List)
+        .map((e) => ConfigElement.fromJson(e))
+        .toList();
+    return config;
   }
 }
 
-
-abstract class ConfigElement {}
+abstract class ConfigElement {
+  Map<String, dynamic> toJson();
+  static ConfigElement fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'Section':
+        return Section.fromJson(json);
+      case 'ArrayElement':
+        return ArrayElement.fromJson(json);
+      case 'Property':
+        return Property.fromJson(json);
+      case 'Command':
+        return Command.fromJson(json);
+      default:
+        throw Exception('Unknown ConfigElement type');
+    }
+  }
+}
 
 class Section extends ConfigElement {
   String name;
@@ -45,6 +74,25 @@ class Section extends ConfigElement {
       return '';
     }
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'Section',
+      'name': name,
+      'properties': properties,
+      'children': children.map((e) => e.toJson()).toList(),
+    };
+  }
+
+  factory Section.fromJson(Map<String, dynamic> json) {
+    final section = Section(json['name']);
+    section.properties = Map<String, String>.from(json['properties']);
+    section.children = (json['children'] as List)
+        .map((e) => ConfigElement.fromJson(e))
+        .toList();
+    return section;
+  }
 }
 
 class ArrayElement extends ConfigElement {
@@ -56,6 +104,21 @@ class ArrayElement extends ConfigElement {
   @override
   String toString() {
     return 'ArrayElement(name: $name, values: $values)';
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'ArrayElement',
+      'name': name,
+      'values': values,
+    };
+  }
+
+  factory ArrayElement.fromJson(Map<String, dynamic> json) {
+    final arrayElement = ArrayElement(json['name']);
+    arrayElement.values = List<String>.from(json['values']);
+    return arrayElement;
   }
 }
 
@@ -69,6 +132,19 @@ class Property extends ConfigElement {
   String toString() {
     return 'Property(key: $key, value: $value)';
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'Property',
+      'key': key,
+      'value': value,
+    };
+  }
+
+  factory Property.fromJson(Map<String, dynamic> json) {
+    return Property(json['key'], json['value']);
+  }
 }
 
 class Command extends ConfigElement {
@@ -79,5 +155,17 @@ class Command extends ConfigElement {
   @override
   String toString() {
     return 'Command(command: $command)';
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'Command',
+      'command': command,
+    };
+  }
+
+  factory Command.fromJson(Map<String, dynamic> json) {
+    return Command(json['command']);
   }
 }
