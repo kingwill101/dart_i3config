@@ -91,6 +91,25 @@ tztime local {
       expect(arrayElement.values, ['volume master', 'battery 0']);
     });
 
+    test('parses escaped brackets', () {
+      final configContent = '''
+      file {
+        destination = "\\{\\{ }}"
+      }
+      ''';
+
+      final parser = I3ConfigParser(configContent);
+      final config = parser.parse();
+
+      expect(config.elements.length, 1);
+      expect(config.elements[0], isA<Section>());
+
+      final section = config.elements[0] as Section;
+      expect(section.module, 'file');
+      expect(section.properties.containsKey('destination'), true);
+      expect(section.properties['destination'], '{{ }}');
+    });
+
     test('parses commands', () {
       final configContent = '''
       set \$ws1 "1: Terminal"

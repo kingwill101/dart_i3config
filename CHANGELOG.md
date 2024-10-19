@@ -1,3 +1,6 @@
+## 1.1.1
+- support properties with escaped curlies
+
 ## 1.0.1
 
 - support section variables with longer names containing spaces
