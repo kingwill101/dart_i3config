@@ -1,7 +1,6 @@
 import 'package:i3config/src/models.dart';
 export 'package:i3config/src/models.dart';
 
-
 class I3ConfigParser {
   final String configContent;
 
@@ -42,7 +41,8 @@ class I3ConfigParser {
       }
 
       // Check for section start
-      final sectionStartMatch = RegExp(r'(\w+)\s*(\S+)?\s*(?<!\\)\{(?![^"]*"\s*$)').firstMatch(line);
+      final sectionStartMatch =
+          RegExp(r'(\w+)\s*(\S+)?\s*(?<!\\)\{(?![^"]*"\s*$)').firstMatch(line);
       if (sectionStartMatch != null) {
         final sectionName = sectionStartMatch.group(1)!;
         final sectionKey = sectionStartMatch.group(2);
@@ -92,7 +92,7 @@ class I3ConfigParser {
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
         final value = propertyMatch.group(2)!.replaceAll(r'\', r'');
-        
+
         final property = Property(key, value);
 
         if (sectionStack.isEmpty) {
