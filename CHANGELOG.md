@@ -1,3 +1,16 @@
+## 2.0.0
+
+### Breaking Changes
+- Values are now automatically parsed into appropriate types (int, bool, double, string)
+- Comments are now preserved and structured into CommentBlocks
+- Fixed array handling in sections to properly group values under the same ArrayElement
+- Changed Property value type from String to dynamic to support typed values
+
+### Features
+- Added type inference for configuration values
+- Added structured comment preservation
+- Improved array handling in sections
+- Added JSON serialization support
 ## 1.1.1
 - support properties with escaped curlies
 

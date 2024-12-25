@@ -1,74 +1,146 @@
-### i3config
+# i3config
 
-A Dart library for parsing and handling i3 configuration files.
+A robust Dart library for parsing and manipulating i3 window manager configuration files.
 
-## Overview
+## Features
 
-This library provides classes and functions to parse i3 configuration files, allowing you to work with sections, properties, arrays, and commands in a structured way. It supports nested sections and preserves the order of elements.
+- Full support for i3 configuration syntax
+- Preserves comments and formatting
+- Handles nested sections
+- Type inference for values (numbers, booleans, strings)
+- Built-in JSON serialization
+- Preserves order of configuration elements
+- Comprehensive error handling
 
-## Getting Started
+## Installation
 
-### Prerequisites
-Dart SDK
-
-### Installation
-
-Add the following to your pubspec.yaml file:
-
+Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  i3config: 1.0.1
+  i3config: ^2.0.0
 ```
 
-or 
+Or use the development version:
 
 ```yaml
 dependencies:
   i3config:
     git:
-      url: https://github.com/yourusername/dart_i3config.git
+      url: https://github.com/kingwill101/dart_i3config.git
 ```
 
-Then, run dart pub get to install the package.
+Then run:
 
-Usage
-To use this library, import it in your Dart code:
+```bash
+dart pub get
+```
+
+## Basic Usage
+
+Parse a simple i3 configuration:
+
 ```dart
 import 'package:i3config/i3config.dart';
 
 void main() {
-  final configContent = '''
-  general {
-      interval = 1
-      colors = true
-  }
+  final config = I3Config.parse('''
+  # Set mod key
+  set $mod Mod4
 
-  order += "volume master"
-  order += "battery 0"
+  # Start terminal
+  bindsym $mod+Return exec i3-sensible-terminal
+  ''');
 
-  set \$ws1 "1: Terminal"
-  include <pattern>
-
-  bar {
-      output HDMI2
-      colors {
-          background #000000
-          statusline #ffffff
-      }
-  }
-  ''';
-
-  final parser = I3ConfigParser(configContent);
-  final config = parser.parse();
-
-  print(config);
+  // Access commands
+  final commands = config.elements.whereType<Command>();
+  print(commands.first.command); // "set $mod Mod4"
 }
 ```
 
-### Contributing
+## Working with Sections
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Handle nested sections and properties:
 
-### License
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+```dart
+final config = I3Config.parse('''
+bar {
+    status_command i3status
+    position top
+    colors {
+        background #000000
+        statusline #ffffff
+    }
+}
+''');
+
+final barSection = config.elements.whereType<Section>().first;
+print(barSection.properties['position']); // "top"
+
+final colorsSection = barSection.children.whereType<Section>().first;
+print(colorsSection.properties['background']); // "#000000"
+```
+
+## Type Support
+
+Values are automatically parsed into appropriate types:
+
+```dart
+final config = I3Config.parse('''
+general {
+    interval = 1          # parsed as integer
+    colors = true        # parsed as boolean
+    format = "%H:%M:%S"  # parsed as string
+}
+''');
+
+final section = config.elements.whereType<Section>().first;
+print(section.properties['interval'].runtimeType); // int
+print(section.properties['colors'].runtimeType);   // bool
+```
+
+## Array Handling
+
+Support for i3's array syntax:
+
+```dart
+final config = I3Config.parse('''
+# Status bar modules
+order += "wireless wlan0"
+order += "battery 0"
+order += "clock"
+''');
+
+final array = config.elements.whereType<ArrayElement>().first;
+print(array.name);   // "order"
+print(array.values); // ["wireless wlan0", "battery 0", "clock"]
+```
+
+## Error Handling
+
+The parser is designed to be forgiving with malformed input:
+
+```dart
+try {
+  final config = I3Config.parse(malformedContent);
+} catch (e) {
+  print('Failed to parse config: $e');
+}
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to:
+
+1. File bug reports and feature requests in [Issues](issues)
+2. Submit [Pull Requests](pulls) with improvements
+3. Improve documentation
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Additional Resources
+
+- [i3 User Guide](https://i3wm.org/docs/userguide.html#configuring)
+- [Package Documentation](https://pub.dev/documentation/i3config)

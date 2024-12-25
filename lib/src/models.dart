@@ -41,8 +41,8 @@ abstract class ConfigElement {
         return Property.fromJson(json);
       case 'Command':
         return Command.fromJson(json);
-      case 'Command':
-        return Command.fromJson(json);
+      case 'Comment':
+        return Comment.fromJson(json);
       case 'CommentBlock':
         return CommentBlock.fromJson(json);
       default:

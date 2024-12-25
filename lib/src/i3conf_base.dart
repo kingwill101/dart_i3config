@@ -133,7 +133,8 @@ class I3ConfigParser {
       }
 
       // Check for array addition
-      final arrayMatch = RegExp(r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''').firstMatch(line);
+      final arrayMatch =
+          RegExp(r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''').firstMatch(line);
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
         String rawValue = arrayMatch.group(2)!;
@@ -170,7 +171,8 @@ class I3ConfigParser {
       }
 
       // Check for property
-      final propertyMatch = RegExp(r'''(\w+)\s*=\s*(["'].*?["']|\S+)''').firstMatch(line);
+      final propertyMatch =
+          RegExp(r'''(\w+)\s*=\s*(["'].*?["']|\S+)''').firstMatch(line);
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
         String rawValue = propertyMatch.group(2)!;
