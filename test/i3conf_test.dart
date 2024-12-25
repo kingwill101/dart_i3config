@@ -82,7 +82,7 @@ tztime local {
       expect(section.moduleName, 'local');
       expect(section.properties.length, 2);
       expect(section.properties['format'], "%Y-%m-%d %H:%M:%S");
-      expect(section.properties['hide_if_equals_localtime'], "true");
+      expect(section.properties['hide_if_equals_localtime'], true);
     });
 
     test('parses simple properties', () {
@@ -101,8 +101,10 @@ tztime local {
 
       final section = config.elements[0] as Section;
       expect(section.name, 'general');
-      expect(section.properties['interval'], '1');
-      expect(section.properties['colors'], 'true');
+      expect(section.properties['interval'], 1);
+      expect(section.properties['interval'], 1);
+      expect(section.properties['colors'], true);
+      expect(section.properties['colors'], true);
     });
 
     test('parses arrays', () {
@@ -128,10 +130,34 @@ tztime local {
       expect(config.elements[1], isA<Section>());
       final groupSection = config.elements[1] as Section;
       expect(groupSection.children.length, 1);
-      expect(groupSection.children[0] , isA<ArrayElement>());
-      expect((groupSection.children[0] as ArrayElement ).values,  ['1', '2']);
+      expect(groupSection.children[0], isA<ArrayElement>());
+      expect((groupSection.children[0] as ArrayElement).values, [1, 2]);
+      expect((groupSection.children[0] as ArrayElement).values, [1, 2]);
     });
 
+    test('parses single quoted strings', () {
+      final configContent = '''
+      general {
+          format = '%Y-%m-%d'
+          message = 'Hello World'
+      }
+      order += 'volume master'
+      ''';
+
+      final parser = I3ConfigParser(configContent);
+      final config = parser.parse();
+
+      expect(config.elements.length, 2);
+      expect(config.elements[0], isA<Section>());
+
+      final section = config.elements[0] as Section;
+      expect(section.properties['format'], '%Y-%m-%d');
+      expect(section.properties['message'], 'Hello World');
+
+      expect(config.elements[1], isA<ArrayElement>());
+      final arrayElement = config.elements[1] as ArrayElement;
+      expect(arrayElement.values, ['volume master']);
+    });
     test('parses escaped brackets', () {
       final configContent = '''
       file {
@@ -237,8 +263,8 @@ tztime local {
 
       final section = config.elements[0] as Section;
       expect(section.name, 'general');
-      expect(section.properties['interval'], '1');
-      expect(section.properties['colors'], 'true');
+      expect(section.properties['interval'], 1);
+      expect(section.properties['colors'], true);
 
       final arrayElement1 = config.elements[1] as ArrayElement;
       expect(arrayElement1.name, 'order');

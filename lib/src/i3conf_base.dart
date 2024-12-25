@@ -1,10 +1,57 @@
 import 'package:i3config/src/models.dart';
 export 'package:i3config/src/models.dart';
 
+dynamic parseValue(String rawValue) {
+  // Handle numeric values
+  if (RegExp(r'^\d+$').hasMatch(rawValue)) {
+    return int.parse(rawValue);
+  }
+  if (RegExp(r'^\d*\.\d+$').hasMatch(rawValue)) {
+    return double.parse(rawValue);
+  }
+
+  // Handle boolean values
+  if (rawValue.toLowerCase() == 'true') return true;
+  if (rawValue.toLowerCase() == 'false') return false;
+
+  // Handle quoted strings by removing quotes and proper escaping
+  if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+    return rawValue.substring(1, rawValue.length - 1).replaceAll(r'\"', '"');
+  }
+  if (rawValue.startsWith("'") && rawValue.endsWith("'")) {
+    return rawValue.substring(1, rawValue.length - 1).replaceAll(r"\'", "'");
+  }
+
+  // Return as is for other cases
+  return rawValue;
+}
+
 class I3ConfigParser {
   final String configContent;
 
   I3ConfigParser(this.configContent);
+
+  dynamic parseValue(String rawValue) {
+    // Handle numeric values
+    if (RegExp(r'^\d+$').hasMatch(rawValue)) {
+      return int.parse(rawValue);
+    }
+    if (RegExp(r'^\d*\.\d+$').hasMatch(rawValue)) {
+      return double.parse(rawValue);
+    }
+
+    // Handle boolean values
+    if (rawValue.toLowerCase() == 'true') return true;
+    if (rawValue.toLowerCase() == 'false') return false;
+
+    // Handle quoted strings by removing quotes
+    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+      return rawValue.substring(1, rawValue.length - 1);
+    }
+
+    // Return as is for other cases
+    return rawValue;
+  }
 
   /// Parses the configuration content and returns an [I3Config] object.
   ///
@@ -86,10 +133,16 @@ class I3ConfigParser {
       }
 
       // Check for array addition
-      final arrayMatch = RegExp(r'(\w+)\s*\+=\s*"?(.*?)"?$').firstMatch(line);
+      final arrayMatch = RegExp(r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''').firstMatch(line);
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
-        final arrayValue = arrayMatch.group(2)!;
+        String rawValue = arrayMatch.group(2)!;
+        // Remove quotes if present
+        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+          rawValue = rawValue.substring(1, rawValue.length - 1);
+        }
+        final arrayValue = parseValue(rawValue);
 
         if (sectionStack.isEmpty) {
           final arrayElement = config.elements.lastWhere(
@@ -117,10 +170,16 @@ class I3ConfigParser {
       }
 
       // Check for property
-      final propertyMatch = RegExp(r'(\w+)\s*=\s*"?(.*?)"?$').firstMatch(line);
+      final propertyMatch = RegExp(r'''(\w+)\s*=\s*(["'].*?["']|\S+)''').firstMatch(line);
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
-        final value = propertyMatch.group(2)!.replaceAll(r'\', r'');
+        String rawValue = propertyMatch.group(2)!;
+        // Remove quotes if present
+        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+          rawValue = rawValue.substring(1, rawValue.length - 1);
+        }
+        final value = parseValue(rawValue.replaceAll(r'\', r''));
 
         final property = Property(key, value);
 

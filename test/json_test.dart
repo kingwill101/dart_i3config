@@ -17,20 +17,21 @@ void main() {
           Property('font', 'pango:monospace 8'),
         ];
 
-      final json = jsonEncode(config.toJson());
-      final decodedConfig = I3Config.fromJson(jsonDecode(json));
+      final jsonStr = jsonEncode(config.toJson());
+      final jsonMap = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final decodedConfig = I3Config.fromJson(jsonMap);
 
       expect(decodedConfig.elements.length, equals(config.elements.length));
       expect(decodedConfig.elements[0], isA<Section>());
       expect(decodedConfig.elements[1], isA<Command>());
       expect(decodedConfig.elements[2], isA<Property>());
 
-      final decodedSection = decodedConfig.elements[0] as Section;
-      expect(decodedSection.name, equals('bar'));
-      expect(decodedSection.properties, equals({'status_command': 'i3status'}));
-      expect(decodedSection.children.length, equals(2));
-      expect(decodedSection.children[0], isA<Property>());
-      expect(decodedSection.children[1], isA<ArrayElement>());
+      final section = decodedConfig.elements[0] as Section;
+      expect(section.name, equals('bar'));
+      expect(section.properties, equals({'status_command': 'i3status'}));
+      expect(section.children.length, equals(2));
+      expect(section.children[0], isA<Property>());
+      expect(section.children[1], isA<ArrayElement>());
 
       final decodedCommand = decodedConfig.elements[1] as Command;
       expect(decodedCommand.command, equals('exec --no-startup-id nm-applet'));
@@ -48,8 +49,9 @@ void main() {
           Command('bindsym \$mod+1 workspace 1'),
         ];
 
-      final json = jsonEncode(section.toJson());
-      final decodedSection = Section.fromJson(jsonDecode(json));
+      final jsonStr = jsonEncode(section.toJson());
+      final jsonMap = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final decodedSection = Section.fromJson(jsonMap);
 
       expect(decodedSection.name, equals('workspace'));
       expect(decodedSection.properties, equals({'output': 'primary'}));
@@ -62,8 +64,9 @@ void main() {
       final arrayElement = ArrayElement('colors')
         ..values = ['#ffffff', '#000000', '#ff0000'];
 
-      final json = jsonEncode(arrayElement.toJson());
-      final decodedArrayElement = ArrayElement.fromJson(jsonDecode(json));
+      final jsonStr = jsonEncode(arrayElement.toJson());
+      final jsonMap = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final decodedArrayElement = ArrayElement.fromJson(jsonMap);
 
       expect(decodedArrayElement.name, equals('colors'));
       expect(decodedArrayElement.values,
