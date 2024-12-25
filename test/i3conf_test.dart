@@ -3,6 +3,37 @@ import 'package:i3config/i3config.dart';
 
 void main() {
   group('I3ConfigParser', () {
+    test('parses comments and comment blocks', () {
+      final configContent = '''
+# This is a comment
+# This is another comment
+general {
+    # Section comment
+    # Another section comment
+    interval = 1
+}
+# Outside comment
+''';
+      final config = I3Config.parse(configContent);
+
+      expect(config.elements.length, 3);
+      expect(config.elements[0], isA<CommentBlock>());
+      final firstCommentBlock = config.elements[0] as CommentBlock;
+      expect(firstCommentBlock.comments,
+          ['# This is a comment', '# This is another comment']);
+
+      expect(config.elements[1], isA<Section>());
+      final section = config.elements[1] as Section;
+      expect(section.children.length, 2);
+      expect(section.children[0], isA<CommentBlock>());
+      final sectionCommentBlock = section.children[0] as CommentBlock;
+      expect(sectionCommentBlock.comments,
+          ['# Section comment', '# Another section comment']);
+
+      expect(config.elements[2], isA<CommentBlock>());
+      final lastCommentBlock = config.elements[2] as CommentBlock;
+      expect(lastCommentBlock.comments, ['# Outside comment']);
+    });
     test('config extension', () {
       final configContent = '''
 bar {

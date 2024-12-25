@@ -41,6 +41,10 @@ abstract class ConfigElement {
         return Property.fromJson(json);
       case 'Command':
         return Command.fromJson(json);
+      case 'Command':
+        return Command.fromJson(json);
+      case 'CommentBlock':
+        return CommentBlock.fromJson(json);
       default:
         throw Exception('Unknown ConfigElement type');
     }
@@ -49,7 +53,7 @@ abstract class ConfigElement {
 
 class Section extends ConfigElement {
   String name;
-  Map<String, String> properties = {};
+  Map<String, dynamic> properties = {};
   List<ConfigElement> children = [];
 
   Section(this.name);
@@ -87,7 +91,7 @@ class Section extends ConfigElement {
 
   factory Section.fromJson(Map<String, dynamic> json) {
     final section = Section(json['name']);
-    section.properties = Map<String, String>.from(json['properties']);
+    section.properties = Map<String, dynamic>.from(json['properties']);
     section.children = (json['children'] as List)
         .map((e) => ConfigElement.fromJson(e))
         .toList();
@@ -97,7 +101,7 @@ class Section extends ConfigElement {
 
 class ArrayElement extends ConfigElement {
   String name;
-  List<String> values = [];
+  List<dynamic> values = [];
 
   ArrayElement(this.name);
 
@@ -117,14 +121,14 @@ class ArrayElement extends ConfigElement {
 
   factory ArrayElement.fromJson(Map<String, dynamic> json) {
     final arrayElement = ArrayElement(json['name']);
-    arrayElement.values = List<String>.from(json['values']);
+    arrayElement.values = List<dynamic>.from(json['values']);
     return arrayElement;
   }
 }
 
 class Property extends ConfigElement {
   String key;
-  String value;
+  dynamic value;
 
   Property(this.key, this.value);
 
@@ -144,6 +148,62 @@ class Property extends ConfigElement {
 
   factory Property.fromJson(Map<String, dynamic> json) {
     return Property(json['key'], json['value']);
+  }
+}
+
+class Comment extends ConfigElement {
+  String content;
+
+  Comment(this.content);
+
+  @override
+  String toString() {
+    return 'Comment(content: $content)';
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'Comment',
+      'content': content,
+    };
+  }
+
+  factory Comment.fromJson(Map<String, dynamic> json) {
+    return Comment(json['content']);
+  }
+}
+
+class CommentBlock extends ConfigElement {
+  List<String> comments = [];
+
+  CommentBlock([String? initialComment]) {
+    if (initialComment != null) {
+      comments.add(initialComment);
+    }
+  }
+
+  void addComment(String comment) {
+    comments.add(comment);
+  }
+
+  @override
+  String toString() {
+    return 'CommentBlock(comments: $comments)';
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'CommentBlock',
+      'comments': comments,
+    };
+  }
+
+  factory CommentBlock.fromJson(Map<String, dynamic> json) {
+    final block = CommentBlock();
+    block.comments = List<String>.from(json['comments']);
+    return block;
   }
 }
 

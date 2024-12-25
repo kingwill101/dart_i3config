@@ -35,8 +35,27 @@ class I3ConfigParser {
     for (var line in lines) {
       line = line.trim();
 
-      // Skip empty lines and comments
-      if (line.isEmpty || line.startsWith('#')) {
+      // Handle empty lines and comments
+      if (line.isEmpty) {
+        continue;
+      }
+
+      if (line.startsWith('#')) {
+        // Get the current container (either config or last section)
+        final container =
+            sectionStack.isEmpty ? config.elements : sectionStack.last.children;
+
+        // Try to find the last comment block
+        CommentBlock? commentBlock;
+        if (container.isNotEmpty && container.last is CommentBlock) {
+          commentBlock = container.last as CommentBlock;
+        } else {
+          // Create a new comment block if none exists
+          commentBlock = CommentBlock();
+          container.add(commentBlock);
+        }
+
+        commentBlock.addComment(line);
         continue;
       }
 
