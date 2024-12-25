@@ -78,17 +78,27 @@ tztime local {
       final configContent = '''
       order += "volume master"
       order += "battery 0"
+
+      group {
+        items += 1
+        items += 2
+      }
       ''';
 
       final parser = I3ConfigParser(configContent);
       final config = parser.parse();
 
-      expect(config.elements.length, 1);
+      expect(config.elements.length, 2);
       expect(config.elements[0], isA<ArrayElement>());
-
       final arrayElement = config.elements[0] as ArrayElement;
       expect(arrayElement.name, 'order');
       expect(arrayElement.values, ['volume master', 'battery 0']);
+
+      expect(config.elements[1], isA<Section>());
+      final groupSection = config.elements[1] as Section;
+      expect(groupSection.children.length, 1);
+      expect(groupSection.children[0] , isA<ArrayElement>());
+      expect((groupSection.children[0] as ArrayElement ).values,  ['1', '2']);
     });
 
     test('parses escaped brackets', () {

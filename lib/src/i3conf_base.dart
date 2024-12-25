@@ -71,19 +71,29 @@ class I3ConfigParser {
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
         final arrayValue = arrayMatch.group(2)!;
-        final arrayElement = config.elements.lastWhere(
-          (element) => element is ArrayElement && element.name == arrayName,
-          orElse: () {
-            final newArrayElement = ArrayElement(arrayName);
-            if (sectionStack.isEmpty) {
+
+        if (sectionStack.isEmpty) {
+          final arrayElement = config.elements.lastWhere(
+            (element) => element is ArrayElement && element.name == arrayName,
+            orElse: () {
+              final newArrayElement = ArrayElement(arrayName);
               config.elements.add(newArrayElement);
-            } else {
-              sectionStack.last.children.add(newArrayElement);
-            }
-            return newArrayElement;
-          },
-        ) as ArrayElement;
-        arrayElement.values.add(arrayValue);
+              return newArrayElement;
+            },
+          ) as ArrayElement;
+          arrayElement.values.add(arrayValue);
+        } else {
+          final currentSection = sectionStack.last;
+          final existingArray = currentSection.children.lastWhere(
+            (element) => element is ArrayElement && element.name == arrayName,
+            orElse: () {
+              final newArrayElement = ArrayElement(arrayName);
+              currentSection.children.add(newArrayElement);
+              return newArrayElement;
+            },
+          ) as ArrayElement;
+          existingArray.values.add(arrayValue);
+        }
         continue;
       }
 
