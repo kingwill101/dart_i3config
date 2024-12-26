@@ -158,6 +158,35 @@ tztime local {
       final arrayElement = config.elements[1] as ArrayElement;
       expect(arrayElement.values, ['volume master']);
     });
+
+    test('parses double quoted strings', () {
+      final configContent = '''
+      general {
+          format = "%Y-%m-%d"
+          message = "Hello World"
+          another "property"
+      }
+      order += "volume master"
+
+
+      ''';
+
+      final parser = I3ConfigParser(configContent);
+      final config = parser.parse();
+
+      expect(config.elements.length, 2);
+      expect(config.elements[0], isA<Section>());
+
+      final section = config.elements[0] as Section;
+      expect(section.properties['format'], '%Y-%m-%d');
+      expect(section.properties['message'], 'Hello World');
+      expect(section.properties['another'], 'property');
+
+      expect(config.elements[1], isA<ArrayElement>());
+      final arrayElement = config.elements[1] as ArrayElement;
+      expect(arrayElement.values, ['volume master']);
+    });
+
     test('parses escaped brackets', () {
       final configContent = '''
       file {

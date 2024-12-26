@@ -1,3 +1,9 @@
+## 2.0.1
+
+### Features
+- fix parsing double quoted strings in sections when not using the assign operator
+- Added topics metadata to package
+
 ## 2.0.0
 
 ### Breaking Changes

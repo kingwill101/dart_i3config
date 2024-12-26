@@ -45,12 +45,14 @@ class I3ConfigParser {
     if (rawValue.toLowerCase() == 'false') return false;
 
     // Handle quoted strings by removing quotes
-    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
-      return rawValue.substring(1, rawValue.length - 1);
+
+    // Remove quotes if present
+    if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+        (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+      rawValue = rawValue.substring(1, rawValue.length - 1);
     }
 
-    // Return as is for other cases
-    return rawValue;
+    return rawValue.replaceAll(r'\', r'');
   }
 
   /// Parses the configuration content and returns an [I3Config] object.
@@ -138,11 +140,6 @@ class I3ConfigParser {
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
         String rawValue = arrayMatch.group(2)!;
-        // Remove quotes if present
-        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
-            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
-          rawValue = rawValue.substring(1, rawValue.length - 1);
-        }
         final arrayValue = parseValue(rawValue);
 
         if (sectionStack.isEmpty) {
@@ -176,12 +173,8 @@ class I3ConfigParser {
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
         String rawValue = propertyMatch.group(2)!;
-        // Remove quotes if present
-        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
-            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
-          rawValue = rawValue.substring(1, rawValue.length - 1);
-        }
-        final value = parseValue(rawValue.replaceAll(r'\', r''));
+
+        final value = parseValue(rawValue);
 
         final property = Property(key, value);
 
@@ -200,14 +193,14 @@ class I3ConfigParser {
 
         if (propertyParts.length == 2) {
           final key = propertyParts[0];
-          final value = propertyParts[1];
+          final value = parseValue(propertyParts[1]);
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);
           continue;
         } else if (propertyParts.length > 2) {
           final key = propertyParts[0];
-          final value = propertyParts.sublist(1).join(' ');
+          final value = parseValue(propertyParts.sublist(1).join(' '));
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);
