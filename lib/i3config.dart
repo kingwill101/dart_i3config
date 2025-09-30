@@ -4,12 +4,25 @@
 /// It handles all major i3 configuration elements including sections, properties, arrays, commands,
 /// and comments while preserving their structure and order.
 ///
+/// ## Version Information
+/// 
+/// This package provides two parser implementations:
+/// 
+/// - **Default (v1)**: Stable, hand-written parser - recommended for production use
+/// - **V2**: Modern PetitParser implementation with enhanced features
+/// 
+/// To use the advanced v2 implementation with source position tracking:
+/// ```dart
+/// import 'package:i3config/i3config_v2.dart';
+/// ```
+///
 /// ## Key Features
 ///
-/// - Full support for i3 configuration syntax
-/// - Preserves comments and formatting
-/// - Handles nested sections
-/// - Supports type inference for values (numbers, booleans, strings)
+/// - Full support for i3/Sway configuration syntax
+/// - Preserves comments and formatting  
+/// - Handles nested sections and blocks
+/// - Supports line continuations
+/// - Enhanced error reporting
 /// - Built-in JSON serialization
 /// - Preserves order of configuration elements
 ///
@@ -23,101 +36,68 @@
 /// void main() {
 ///   final config = I3Config.parse('''
 ///   # Set mod key
-///   set $mod Mod4
+///   set \$mod Mod4
 ///
 ///   # Start terminal
-///   bindsym $mod+Return exec i3-sensible-terminal
+///   bindsym \$mod+Return exec i3-sensible-terminal
 ///   ''');
 ///
-///   // Access commands
-///   final commands = config.elements.whereType<Command>();
-///   print(commands.first.command); // "set $mod Mod4"
+///   print('Parsed ${config.elements.length} elements');
 /// }
 /// ```
 ///
-/// ## Working with Sections
+/// ## Enhanced Features (V2)
 ///
-/// The library handles nested sections with properties:
+/// For advanced use cases, use the v2 implementation:
 ///
 /// ```dart
-/// final config = I3Config.parse('''
-/// bar {
-///     status_command i3status
-///     position top
-///     colors {
-///         background #000000
-///         statusline #ffffff
-///     }
+/// import 'package:i3config/i3config_v2.dart';
+///
+/// final config = Config.parse(configContent);
+/// 
+/// // Access source position information
+/// for (final statement in config.statements) {
+///   if (statement.span != null) {
+///     print('Statement at line ${statement.span!.start.line + 1}');
+///   }
 /// }
-/// ''');
-///
-/// final barSection = config.elements.whereType<Section>().first;
-/// print(barSection.properties['position']); // "top"
-///
-/// final colorsSection = barSection.children.whereType<Section>().first;
-/// print(colorsSection.properties['background']); // "#000000"
 /// ```
-///
-/// ## Type Support
-///
-/// Values are automatically parsed into appropriate types:
-///
-/// ```dart
-/// final config = I3Config.parse('''
-/// general {
-///     interval = 1          # parsed as integer
-///     colors = true        # parsed as boolean
-///     format = "%H:%M:%S"  # parsed as string
-/// }
-/// ''');
-///
-/// final section = config.elements.whereType<Section>().first;
-/// print(section.properties['interval'].runtimeType); // int
-/// print(section.properties['colors'].runtimeType);   // bool
-/// ```
-///
-/// ## Array Handling
-///
-/// Support for i3's array syntax:
-///
-/// ```dart
-/// final config = I3Config.parse('''
-/// # Status bar modules
-/// order += "wireless wlan0"
-/// order += "battery 0"
-/// order += "clock"
-/// ''');
-///
-/// final array = config.elements.whereType<ArrayElement>().first;
-/// print(array.name);   // "order"
-/// print(array.values); // ["wireless wlan0", "battery 0", "clock"]
-/// ```
-///
-/// ## Core Classes
-///
-/// - [I3Config]: The root container for all configuration elements
-/// - [Section]: Represents a configuration block with properties and nested elements
-/// - [Property]: Key-value pairs with type inference
-/// - [ArrayElement]: Represents array-like configurations with multiple values
-/// - [Command]: Raw i3 commands and directives
-/// - [CommentBlock]: Preserved comments with proper placement
-/// - [I3ConfigParser]: The main parsing engine
 ///
 /// ## Error Handling
 ///
-/// The parser is designed to be forgiving and will try to make sense of malformed input:
+/// The parser provides detailed error information:
 ///
 /// ```dart
 /// try {
 ///   final config = I3Config.parse(malformedContent);
 /// } catch (e) {
-///   print('Failed to parse config: $e');
+///   print('Parse error: $e');
 /// }
 /// ```
+///
+/// ## Migration Guide
+///
+/// - **Existing code**: No changes needed, continues to use stable v1 parser
+/// - **New projects**: Consider using `package:i3config/i3config_v2.dart` for enhanced features
+/// - **Gradual migration**: Import v2 explicitly when ready to upgrade
+///
+/// ## Core Classes
+///
+/// **V1 (Default)**:
+/// - `I3Config`: The root configuration container
+/// - `ConfigElement`: Base class for all configuration elements
+/// 
+/// **V2 (Enhanced)**:
+/// - `Config`: Enhanced root container with source position tracking
+/// - `Statement`: Base class for all statements with sealed class hierarchy
+/// - `Command`: Generic commands with enhanced type safety
+/// - `Value`: Sealed hierarchy for values (Quoted, VariableRef, BareArg)
+/// - `I3ConfigParser`: Advanced parsing engine with detailed error reporting
 ///
 /// ## Additional Information
 ///
 /// For more details on i3 configuration syntax and options, see the
 /// [i3 User Guide](https://i3wm.org/docs/userguide.html#configuring).
 
-export 'src/i3conf_base.dart';
+// Export the stable v1 implementation by default
+export 'i3config_v1.dart';

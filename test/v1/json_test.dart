@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:test/test.dart';
-import 'package:i3config/src/models.dart';
+import 'package:i3config/src/v1/models.dart';
 
 void main() {
   group('JSON Serialization and Deserialization', () {

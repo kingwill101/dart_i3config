@@ -1,5 +1,5 @@
-import 'package:i3config/src/models.dart';
-export 'package:i3config/src/models.dart';
+import 'package:i3config/src/v1/models.dart';
+export 'package:i3config/src/v1/models.dart';
 
 dynamic parseValue(String rawValue) {
   // Handle numeric values
@@ -45,14 +45,12 @@ class I3ConfigParser {
     if (rawValue.toLowerCase() == 'false') return false;
 
     // Handle quoted strings by removing quotes
-
-    // Remove quotes if present
-    if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
-        (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
-      rawValue = rawValue.substring(1, rawValue.length - 1);
+    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+      return rawValue.substring(1, rawValue.length - 1);
     }
 
-    return rawValue.replaceAll(r'\', r'');
+    // Return as is for other cases
+    return rawValue;
   }
 
   /// Parses the configuration content and returns an [I3Config] object.
@@ -140,6 +138,11 @@ class I3ConfigParser {
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
         String rawValue = arrayMatch.group(2)!;
+        // Remove quotes if present
+        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+          rawValue = rawValue.substring(1, rawValue.length - 1);
+        }
         final arrayValue = parseValue(rawValue);
 
         if (sectionStack.isEmpty) {
@@ -173,8 +176,12 @@ class I3ConfigParser {
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
         String rawValue = propertyMatch.group(2)!;
-
-        final value = parseValue(rawValue);
+        // Remove quotes if present
+        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+          rawValue = rawValue.substring(1, rawValue.length - 1);
+        }
+        final value = parseValue(rawValue.replaceAll(r'\', r''));
 
         final property = Property(key, value);
 
@@ -193,14 +200,26 @@ class I3ConfigParser {
 
         if (propertyParts.length == 2) {
           final key = propertyParts[0];
-          final value = parseValue(propertyParts[1]);
+          String rawValue = propertyParts[1];
+          // Remove quotes if present
+          if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+              (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+            rawValue = rawValue.substring(1, rawValue.length - 1);
+          }
+          final value = parseValue(rawValue.replaceAll(r'\', r''));
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);
           continue;
         } else if (propertyParts.length > 2) {
           final key = propertyParts[0];
-          final value = parseValue(propertyParts.sublist(1).join(' '));
+          String rawValue = propertyParts.sublist(1).join(' ');
+          // Remove quotes if present
+          if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+              (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+            rawValue = rawValue.substring(1, rawValue.length - 1);
+          }
+          final value = parseValue(rawValue.replaceAll(r'\', r''));
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);

@@ -1,4 +1,4 @@
-import 'package:i3config/src/i3conf_base.dart' as parser;
+import 'i3conf_base.dart' as parser;
 
 class I3Config {
   List<ConfigElement> elements = [];
