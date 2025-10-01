@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/src/v2/ast.dart';
 
 void main() {
   group('Comprehensive i3/Sway Parser Tests', () {
@@ -605,17 +606,14 @@ bar {
         
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
-        expect(config.statements.first, isA<Command>());
+        expect(config.statements.first, isA<Assignment>());
         
-        final command = config.statements.first as Command;
-        expect(command.head, 'assign');
-        expect(command.args.length, 3);
-        expect(command.args[0], isA<BareArg>());
-        expect((command.args[0] as BareArg).value, 'order');
-        expect(command.args[1], isA<BareArg>());
-        expect((command.args[1] as BareArg).value, '=');
-        expect(command.args[2], isA<Quoted>());
-        expect((command.args[2] as Quoted).value, 'volume master');
+        final assignment = config.statements.first as Assignment;
+        expect(assignment.variable, 'order');
+        expect(assignment.operator, AssignmentOperator.assign);
+        expect(assignment.values.length, 1);
+        expect(assignment.values[0], isA<Quoted>());
+        expect((assignment.values[0] as Quoted).value, 'volume master');
       });
 
       test('parse assignment with plus equals', () {
@@ -623,17 +621,14 @@ bar {
         
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
-        expect(config.statements.first, isA<Command>());
+        expect(config.statements.first, isA<Assignment>());
         
-        final command = config.statements.first as Command;
-        expect(command.head, 'assign');
-        expect(command.args.length, 3);
-        expect(command.args[0], isA<BareArg>());
-        expect((command.args[0] as BareArg).value, 'order');
-        expect(command.args[1], isA<BareArg>());
-        expect((command.args[1] as BareArg).value, '+=');
-        expect(command.args[2], isA<Quoted>());
-        expect((command.args[2] as Quoted).value, 'battery 0');
+        final assignment = config.statements.first as Assignment;
+        expect(assignment.variable, 'order');
+        expect(assignment.operator, AssignmentOperator.append);
+        expect(assignment.values.length, 1);
+        expect(assignment.values[0], isA<Quoted>());
+        expect((assignment.values[0] as Quoted).value, 'battery 0');
       });
 
       test('parse dotted identifier assignment', () {
@@ -641,17 +636,14 @@ bar {
         
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
-        expect(config.statements.first, isA<Command>());
+        expect(config.statements.first, isA<Assignment>());
         
-        final command = config.statements.first as Command;
-        expect(command.head, 'assign');
-        expect(command.args.length, 3);
-        expect(command.args[0], isA<BareArg>());
-        expect((command.args[0] as BareArg).value, 'bar.colors.focused');
-        expect(command.args[1], isA<BareArg>());
-        expect((command.args[1] as BareArg).value, '=');
-        expect(command.args[2], isA<Quoted>());
-        expect((command.args[2] as Quoted).value, '#ffffff');
+        final assignment = config.statements.first as Assignment;
+        expect(assignment.variable, 'bar.colors.focused');
+        expect(assignment.operator, AssignmentOperator.assign);
+        expect(assignment.values.length, 1);
+        expect(assignment.values[0], isA<Quoted>());
+        expect((assignment.values[0] as Quoted).value, '#ffffff');
       });
     });
 
@@ -768,21 +760,19 @@ bar {
         final config = Config.parse(configContent);
         expect(config.statements.length, 3);
         
-        // First two should be assignment commands
-        expect(config.statements[0], isA<Command>());
-        expect(config.statements[1], isA<Command>());
+        // First two should be assignments
+        expect(config.statements[0], isA<Assignment>());
+        expect(config.statements[1], isA<Assignment>());
         
-        final assign1 = config.statements[0] as Command;
-        final assign2 = config.statements[1] as Command;
-        expect(assign1.head, 'assign');
-        expect((assign1.args[0] as BareArg).value, 'order');
-        expect((assign1.args[1] as BareArg).value, '+=');
-        expect((assign1.args[2] as Quoted).value, 'volume master');
+        final assign1 = config.statements[0] as Assignment;
+        final assign2 = config.statements[1] as Assignment;
+        expect(assign1.variable, 'order');
+        expect(assign1.operator, AssignmentOperator.append);
+        expect((assign1.values[0] as Quoted).value, 'volume master');
         
-        expect(assign2.head, 'assign');
-        expect((assign2.args[0] as BareArg).value, 'order');
-        expect((assign2.args[1] as BareArg).value, '+=');
-        expect((assign2.args[2] as Quoted).value, 'battery 0');
+        expect(assign2.variable, 'order');
+        expect(assign2.operator, AssignmentOperator.append);
+        expect((assign2.values[0] as Quoted).value, 'battery 0');
         
         // Third should be bar block command
         expect(config.statements[2], isA<Command>());

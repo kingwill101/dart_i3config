@@ -25,6 +25,8 @@ sealed class ConfigElement {
     switch (json['type']) {
       case 'Config':
         return Config.fromJson(json);
+      case 'Assignment':
+        return Assignment.fromJson(json);
       case 'Block':
         return Block.fromJson(json);
       case 'Command':
@@ -67,12 +69,58 @@ class Config extends ConfigElement {
   }
 }
 
+/// Assignment operators for i3 config variables
+enum AssignmentOperator {
+  assign('='),      // Set value
+  append('+=');     // Append to existing value
+
+  const AssignmentOperator(this.symbol);
+  final String symbol;
+
+  /// Parse operator symbol to enum value
+  static AssignmentOperator fromSymbol(String symbol) {
+    switch (symbol) {
+      case '=': return AssignmentOperator.assign;
+      case '+=': return AssignmentOperator.append;
+      default: throw ArgumentError('Unknown assignment operator: $symbol');
+    }
+  }
+
+  @override
+  String toString() => symbol;
+}
+
 /// Base class for all statements.
 sealed class Statement extends ConfigElement {
   Statement([super.span]);
 }
 
-// All statements are now generic Command objects - no specific statement types
+/// Assignment statement: `variable = value` or `variable += value`
+class Assignment extends Statement {
+  final String variable;                // Left-hand side (property name, may be dotted)
+  final AssignmentOperator operator;    // Assignment operator
+  final List<Value> values;             // Right-hand side values
+
+  Assignment(this.variable, this.operator, this.values, [super.span]);
+
+  @override
+  String toString() =>
+      'Assignment(variable: $variable, operator: $operator, values: $values)';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'Assignment',
+    'variable': variable,
+    'operator': operator.symbol,
+    'values': values.map((v) => v.toJson()).toList(),
+  };
+
+  factory Assignment.fromJson(Map<String, dynamic> json) => Assignment(
+    json['variable'],
+    AssignmentOperator.fromSymbol(json['operator']),
+    (json['values'] as List).map((v) => Value.fromJson(v)).toList(),
+  );
+}
 
 /// Block statement: `{ ... }` with optional type and identifier
 class Block extends Statement {

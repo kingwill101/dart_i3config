@@ -5,6 +5,9 @@ abstract class ConfigVisitor<T> {
   /// Visit a Config element (root container).
   T visitConfig(Config config);
   
+  /// Visit an Assignment element.
+  T visitAssignment(Assignment assignment);
+  
   /// Visit a Command element.
   T visitCommand(Command command);
   
@@ -217,6 +220,17 @@ class InitialState extends ProcessorState {
   @override
   void process(ConfigElement element, ConfigProcessor processor) {
     switch (element) {
+      case Config config:
+        // Process all statements in the config
+        for (final statement in config.statements) {
+          process(statement, processor);
+        }
+        break;
+      case Assignment assignment:
+        processor.pushState(AssignmentProcessingState());
+        processor.currentState.process(assignment, processor);
+        processor.popState();
+        break;
       case Command command:
         processor.pushState(CommandProcessingState());
         processor.currentState.process(command, processor);
@@ -230,12 +244,6 @@ class InitialState extends ProcessorState {
       case Comment _:
         // Comments are typically ignored during processing
         break;
-      default:
-        // Handle unknown element types
-        processor.context.errorHandler?.handleError(
-          'Unknown element type: ${element.runtimeType}', 
-          processor.context
-        );
     }
   }
 }
@@ -311,8 +319,8 @@ class CommandProcessingState extends ProcessorState {
     // Binding commands would typically register key bindings
     // This is a placeholder for the actual implementation
     if (command.args.length >= 2) {
-      final _ = _expandValue(command.args[0], processor.context);
-      final __ = _expandValue(command.args[1], processor.context);
+      _expandValue(command.args[0], processor.context);
+      _expandValue(command.args[1], processor.context);
       // TODO: Register key binding
     }
   }
@@ -351,8 +359,63 @@ class CommandProcessingState extends ProcessorState {
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
-      default:
-        return value.toString();
+    }
+  }
+}
+
+/// State for processing assignments.
+class AssignmentProcessingState extends ProcessorState {
+  @override
+  String get stateName => 'AssignmentProcessing';
+  
+  @override
+  void process(ConfigElement element, ConfigProcessor processor) {
+    if (element is Assignment) {
+      final assignment = element;
+      
+      // Process assignment by expanding values and storing in context
+      _processAssignment(assignment, processor);
+    }
+  }
+  
+  void _processAssignment(Assignment assignment, ConfigProcessor processor) {
+    // Assignment processing logic
+    switch (assignment.operator) {
+      case AssignmentOperator.assign:
+        // Handle direct assignment
+        _processDirectAssignment(assignment, processor);
+        break;
+      case AssignmentOperator.append:
+        // Handle append assignment
+        _processAppendAssignment(assignment, processor);
+        break;
+    }
+  }
+  
+  void _processDirectAssignment(Assignment assignment, ConfigProcessor processor) {
+    // Direct assignment logic - could be used for configuration variables
+    // This is a placeholder for future assignment processing
+    final expandedValues = assignment.values.map((value) => _expandValue(value, processor.context)).toList();
+    // TODO: Store assignment in appropriate context
+    print('Assignment: ${assignment.variable} = ${expandedValues.join(' ')}');
+  }
+  
+  void _processAppendAssignment(Assignment assignment, ConfigProcessor processor) {
+    // Append assignment logic - commonly used for arrays
+    // This is a placeholder for future assignment processing
+    final expandedValues = assignment.values.map((value) => _expandValue(value, processor.context)).toList();
+    // TODO: Append to existing variable or create new array
+    print('Append assignment: ${assignment.variable} += ${expandedValues.join(' ')}');
+  }
+  
+  String _expandValue(Value value, ProcessingContext context) {
+    switch (value) {
+      case Quoted quoted:
+        return context.expandVariables(quoted.value);
+      case VariableRef varRef:
+        return context.getVariable(varRef.name) ?? '\$${varRef.name}';
+      case BareArg bareArg:
+        return context.expandVariables(bareArg.value);
     }
   }
 }

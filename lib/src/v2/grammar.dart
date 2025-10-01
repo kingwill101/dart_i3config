@@ -240,15 +240,16 @@ Parser<List<Criterion>> criteria() => (char('[') & ws().optional() & critItem() 
 
 // ===== Assignments =====
 
-Parser<List<Command>> assignStmt() => (lhs() & ws() & assignOp() & ws() & rhsList())
-    .map((parts) {
+Parser<Assignment> assignStmt() => position()
+    .seq(lhs() & ws() & assignOp() & ws() & rhsList())
+    .seq(position())
+    .map((vals) {
+      final parts = vals[1] as List;
       final lhsValue = parts[0] as String;
-      final op = parts[2] as String;
+      final opSymbol = parts[2] as String;
       final rhsValues = parts[4] as List<Value>;
       
-      // Create a command representation for assignments
-      final args = <Value>[BareArg(lhsValue), BareArg(op), ...rhsValues];
-      return [Command('assign', args, null, null)];
+      return _annotate(Assignment(lhsValue, AssignmentOperator.fromSymbol(opSymbol), rhsValues), vals[0] as int, vals[2] as int);
     });
 
 // ===== Argument patterns =====
@@ -358,7 +359,7 @@ Parser<Command> blockStmt() => position()
 
 // ===== Statements =====
 
-Parser statement() => blockStmt().map((cmd) => [cmd]) | assignStmt() | chainLine() | simpleCommand();
+Parser statement() => blockStmt().map((cmd) => [cmd]) | assignStmt().map((assignment) => [assignment]) | chainLine() | simpleCommand();
 
 // ===== Root config =====
 

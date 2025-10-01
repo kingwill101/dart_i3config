@@ -191,6 +191,12 @@ class CommandCollectorVisitor implements ConfigVisitor<Map<String, List<Command>
   }
   
   @override
+  Map<String, List<Command>> visitAssignment(Assignment assignment) {
+    // Assignments are not commands, so we don't collect them here
+    return _commands;
+  }
+  
+  @override
   Map<String, List<Command>> visitCommand(Command command) {
     _commands.putIfAbsent(command.head, () => []).add(command);
     return _commands;
@@ -245,6 +251,22 @@ class ConfigValidatorVisitor implements ConfigVisitor<List<String>> {
       _visitElement(element);
     }
     return List.from(_errors);
+  }
+  
+  @override
+  List<String> visitAssignment(Assignment assignment) {
+    // Validate assignment structure
+    if (assignment.variable.isEmpty) {
+      _errors.add('Assignment has empty variable name');
+    }
+    
+    // Operator validation is now handled by the enum - no need to check
+    
+    if (assignment.values.isEmpty) {
+      _errors.add('Assignment has no values');
+    }
+    
+    return _errors;
   }
   
   @override

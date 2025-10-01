@@ -1,7 +1,7 @@
 #!/usr/bin/env dart
 
 import 'package:i3config/i3config_v2.dart'
-    show Block, Command, Comment, Config, VariableRef;
+  show Assignment, Block, Command, Comment, Config, VariableRef;
 
 void main() {
   print('=== i3config Parser - Source Position Tracking Example ===\n');
@@ -56,6 +56,23 @@ mode "resize" {
 
       // Element-specific information
       switch (element) {
+        case Assignment assignment:
+          // Property assignment like: order += "value"
+          final op = assignment.operator; // enum AssignmentOperator
+          print('Assignment: ${assignment.variable} ${op.symbol} ...');
+          // Show values and their positions if available
+          for (int j = 0; j < assignment.values.length; j++) {
+            final value = assignment.values[j];
+            if (value.span != null) {
+              final vSpan = value.span!;
+              print(
+                '  Value ${j + 1}: "${vSpan.text}" at ${vSpan.start.line + 1}:${vSpan.start.column + 1}',
+              );
+            } else {
+              print('  Value ${j + 1}: ${value.toString()}');
+            }
+          }
+
         case Comment comment:
           print('Content: "${comment.content}"');
 
@@ -130,8 +147,9 @@ void findVariableDefinitions(Config config, String source) {
         final line = statement.span!.start.line + 1;
         final column = statement.span!.start.column + 1;
 
-        print('  Variable: \${varName.name}');
-        print('    Value: $varValue');
+  // VariableRef.name does not include the leading '$'
+  print('  Variable: \$${varName.name}');
+  print('    Value: ${varValue.toString()}');
         print('    Location: Line $line, Column $column');
 
         // Show the source line for context
