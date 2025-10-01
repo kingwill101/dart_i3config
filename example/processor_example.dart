@@ -1,4 +1,5 @@
 import 'package:i3config/i3config_v2.dart';
+import '../test/v2/test_handlers.dart';
 
 void main() {
   // Example i3 configuration

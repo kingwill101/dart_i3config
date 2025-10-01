@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:i3config/i3config_v2.dart';
+import 'test_handlers.dart';
 
 void main() {
   group('State Machine and Visitor Pattern Tests', () {

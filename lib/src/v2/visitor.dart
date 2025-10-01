@@ -38,6 +38,9 @@ class ProcessingContext {
   /// Current processing state.
   ProcessorState? currentState;
   
+  /// Current block type being processed (null if at global scope).
+  String? currentBlockType;
+  
   /// Parent context for scoping (null for global context).
   final ProcessingContext? parentContext;
   
@@ -46,6 +49,10 @@ class ProcessingContext {
   
   /// Registry of custom block handlers.
   final Map<String, BlockHandler> blockHandlers = {};
+  
+  /// Registry of block-scoped command handlers.
+  /// Structure: {'bar': {'status_command': BarStatusCommandHandler()}}
+  final Map<String, Map<String, CommandHandler>> blockScopedCommandHandlers = {};
   
   /// Processing options and flags.
   final Map<String, dynamic> options = {};
@@ -127,6 +134,22 @@ abstract class CommandHandler {
   String get commandName;
 }
 
+/// Mixin that provides value expansion utility for handlers.
+mixin ValueExpander {
+  /// Helper method to expand a value by resolving variables.
+  /// This is a common operation in handlers.
+  String expandValue(Value value, ProcessingContext context) {
+    switch (value) {
+      case Quoted quoted:
+        return context.expandVariables(quoted.value);
+      case VariableRef varRef:
+        return context.getVariable(varRef.name) ?? '\$${varRef.name}';
+      case BareArg bareArg:
+        return context.expandVariables(bareArg.value);
+    }
+  }
+}
+
 /// Handler for specific block types.
 abstract class BlockHandler {
   /// Handle a block with the given context.
@@ -134,6 +157,28 @@ abstract class BlockHandler {
   
   /// Get the block type this handler processes.
   String get blockType;
+  
+  /// Register block-scoped command handlers for this block type.
+  /// Override this method to register commands that should only be active
+  /// within this block type.
+  /// 
+  /// Example:
+  /// ```dart
+  /// @override
+  /// void registerScopedCommands(BlockHandlerRegistry registry) {
+  ///   registry.registerCommand('status_command', BarStatusCommandHandler());
+  ///   registry.registerCommand('position', BarPositionCommandHandler());
+  /// }
+  /// ```
+  void registerScopedCommands(BlockHandlerRegistry registry) {
+    // Default: no scoped commands
+  }
+}
+
+/// Registry interface for registering commands within a block handler.
+abstract class BlockHandlerRegistry {
+  /// Register a command handler scoped to the current block type.
+  void registerCommand(String commandName, CommandHandler handler);
 }
 
 /// Error handler for processing errors.
@@ -143,10 +188,13 @@ abstract class ErrorHandler {
 }
 
 /// Main configuration processor that orchestrates the state machine.
-class ConfigProcessor {
+class ConfigProcessor implements BlockHandlerRegistry {
   final ProcessingContext _context = ProcessingContext();
   final List<ProcessorState> _stateStack = [];
   final List<ProcessingContext> _contextStack = [];
+  
+  /// Track which block type we're currently registering commands for.
+  String? _currentBlockTypeRegistration;
   
   /// Current processing state.
   ProcessorState get currentState => _stateStack.isNotEmpty 
@@ -200,8 +248,46 @@ class ConfigProcessor {
   }
   
   /// Register a block handler.
+  /// This will also call the handler's registerScopedCommands method to set up
+  /// any block-scoped command handlers.
   void registerBlockHandler(BlockHandler handler) {
     _context.blockHandlers[handler.blockType] = handler;
+    
+    // Allow the block handler to register its scoped commands
+    _currentBlockTypeRegistration = handler.blockType;
+    try {
+      handler.registerScopedCommands(this);
+    } finally {
+      _currentBlockTypeRegistration = null;
+    }
+  }
+  
+  /// Register a command handler scoped to a specific block type.
+  /// The handler will only be invoked for commands inside blocks of the specified type.
+  /// 
+  /// Note: Prefer using BlockHandler.registerScopedCommands for better encapsulation.
+  void registerBlockScopedCommandHandler(String blockType, CommandHandler handler) {
+    _context.blockScopedCommandHandlers
+        .putIfAbsent(blockType, () => {})
+        [handler.commandName] = handler;
+  }
+  
+  @override
+  void registerCommand(String commandName, CommandHandler handler) {
+    if (_currentBlockTypeRegistration == null) {
+      throw StateError(
+        'registerCommand can only be called from within BlockHandler.registerScopedCommands');
+    }
+    
+    _context.blockScopedCommandHandlers
+        .putIfAbsent(_currentBlockTypeRegistration!, () => {})
+        [commandName] = handler;
+  }
+  
+  /// Get all block-scoped handlers registered for a specific block type.
+  /// Returns an empty map if no handlers are registered for the block type.
+  Map<String, CommandHandler> getBlockScopedHandlers(String blockType) {
+    return _context.blockScopedCommandHandlers[blockType] ?? {};
   }
   
   /// Set the error handler.
@@ -258,8 +344,34 @@ class CommandProcessingState extends ProcessorState {
     if (element is Command) {
       final command = element;
       
-      // Check for registered command handler
-      final handler = processor.context.commandHandlers[command.head];
+      // If command has an attached block (e.g., bar { ... }), process it as a block
+      if (command.block != null) {
+        _processCommandWithBlock(command, processor);
+        return;
+      }
+      
+      // Handler resolution order:
+      // 1. Check for block-scoped handler (if inside a block)
+      // 2. Check for global command handler
+      // 3. Default command processing
+      
+      CommandHandler? handler;
+      
+      // Step 1: Check block-scoped handlers (from global context)
+      final currentBlockType = processor.context.currentBlockType;
+      if (currentBlockType != null) {
+        final globalContext = processor.context.globalContext;
+        final blockScopedHandlers = 
+            globalContext.blockScopedCommandHandlers[currentBlockType];
+        if (blockScopedHandlers != null) {
+          handler = blockScopedHandlers[command.head];
+        }
+      }
+      
+      // Step 2: Check global handlers if no block-scoped handler found
+      handler ??= processor.context.globalContext.commandHandlers[command.head];
+      
+      // Step 3: If handler found, use it; otherwise use default processing
       if (handler != null) {
         handler.handle(command, processor.context);
         return;
@@ -267,6 +379,38 @@ class CommandProcessingState extends ProcessorState {
       
       // Default command processing
       _processDefaultCommand(command, processor);
+    }
+  }
+  
+  void _processCommandWithBlock(Command command, ConfigProcessor processor) {
+    // Commands with blocks (like bar { ... }) should be processed as blocks
+    // The block type is the command's head (e.g., 'bar', 'mode', etc.)
+    final block = command.block!;
+    
+    // Check for registered block handler (from global context)
+    final handler = processor.context.globalContext.blockHandlers[command.head];
+    
+    // Process block contents with the command head as block type
+    processor.pushContext();
+    
+    final previousBlockType = processor.context.currentBlockType;
+    processor.context.currentBlockType = command.head;
+    
+    try {
+      // Call the block handler if registered (for setup/teardown)
+      if (handler != null) {
+        handler.handle(block, processor.context);
+      }
+      
+      // Process block contents (scoped command handlers will be invoked here)
+      for (final element in block.body) {
+        processor.pushState(InitialState());
+        processor.currentState.process(element, processor);
+        processor.popState();
+      }
+    } finally {
+      processor.context.currentBlockType = previousBlockType;
+      processor.popContext();
     }
   }
   
@@ -433,7 +577,10 @@ class BlockProcessingState extends ProcessorState {
       // Check for registered block handler
       final handler = processor.context.blockHandlers[block.blockType ?? 'generic'];
       if (handler != null) {
-        handler.handle(block, processor.context);
+        // Set block type before calling handler
+        _withBlockType(block.blockType, processor, () {
+          handler.handle(block, processor.context);
+        });
         return;
       }
       
@@ -446,6 +593,10 @@ class BlockProcessingState extends ProcessorState {
     // Push new context for block processing (creates child context)
     processor.pushContext();
     
+    // Set the current block type for scoped handler lookup
+    final previousBlockType = processor.context.currentBlockType;
+    processor.context.currentBlockType = block.blockType;
+    
     try {
       // Process block contents in the block's context
       for (final element in block.body) {
@@ -454,8 +605,20 @@ class BlockProcessingState extends ProcessorState {
         processor.popState();
       }
     } finally {
+      // Restore previous block type
+      processor.context.currentBlockType = previousBlockType;
       // Pop context when done with block
       processor.popContext();
+    }
+  }
+  
+  void _withBlockType(String? blockType, ConfigProcessor processor, void Function() action) {
+    final previousBlockType = processor.context.currentBlockType;
+    processor.context.currentBlockType = blockType;
+    try {
+      action();
+    } finally {
+      processor.context.currentBlockType = previousBlockType;
     }
   }
 }

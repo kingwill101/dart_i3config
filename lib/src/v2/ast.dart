@@ -127,8 +127,18 @@ class Block extends Statement {
   final String? blockType; // 'mode', 'bar', 'input', 'output', 'seat', etc.
   final Value? identifier;
   final List<ConfigElement> body;
+  
+  /// Parent block reference (null if at top level).
+  /// This is NOT populated by the parser by default - use buildBlockHierarchy() to establish links.
+  Block? parentBlock;
 
   Block(this.blockType, this.identifier, this.body, [super.span]);
+  
+  /// Get all child blocks contained in this block's body.
+  /// Returns an empty list if there are no child blocks.
+  List<Block> get childBlocks {
+    return body.whereType<Block>().toList();
+  }
 
   @override
   String toString() =>
@@ -325,4 +335,32 @@ class ParseError extends Error {
 
   @override
   String toString() => 'ParseError at line $line, column $column: $message';
+}
+
+/// Build block hierarchy by establishing parent-child relationships.
+/// 
+/// This function traverses the configuration and sets the `parentBlock` field
+/// on all nested blocks. By default, blocks parsed from configuration do not
+/// have their parent references set for performance reasons.
+/// 
+/// Example:
+/// ```dart
+/// final config = Config.parse(configContent);
+/// buildBlockHierarchy(config);
+/// 
+/// // Now blocks have parent references
+/// final nestedBlock = someBlock;
+/// final parent = nestedBlock.parentBlock; // Not null if nested
+/// ```
+void buildBlockHierarchy(Config config) {
+  void linkBlocks(List<ConfigElement> elements, Block? parent) {
+    for (final element in elements) {
+      if (element is Block) {
+        element.parentBlock = parent;
+        linkBlocks(element.body, element);
+      }
+    }
+  }
+  
+  linkBlocks(config.statements, null);
 }
