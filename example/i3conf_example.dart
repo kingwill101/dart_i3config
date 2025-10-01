@@ -1,34 +1,24 @@
-import 'package:i3config/i3config.dart';
+import 'package:i3config/i3config_v2.dart';
 
 void main() {
   final configContent = '''
-order += "volume slave"
-general {
-    interval = 1
-    colors = true
-    color_good="#FFFFFF"
-    color_degraded="#ffd75f"
-    color_bad="#d75f5f"
-}
+# Set mod key
+set \$mod Mod4
 
-# order += "tztime utc"
-order += "tztime local"
+# Basic key bindings
+bindsym \$mod+Return exec i3-sensible-terminal
+bindsym \$mod+Shift+q kill
 
-tztime local {
-    format = "  %a %Y-%m-%d %H:%M:%S"
-}
+# Variable assignment
+set \$terminal i3-sensible-terminal
+''';
 
-tztime utc {
-    format = " UTC %H:%M"
-    timezone = "Etc/UTC"
-}
-
-  ''';
-
-  final parser = I3ConfigParser(configContent);
-  final config = parser.parse();
-
-  for (var element in config.elements) {
-    print(element);
+  final config = Config.parse(configContent);
+  print('Parsed ${config.elements.length} configuration elements');
+  
+  // Access specific elements
+  for (final element in config.elements) {
+    print('Element: ${element.runtimeType}');
   }
 }
+

@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:i3config/i3config.dart';
+import 'package:i3config/i3config_v1.dart';
 
 void main() {
   group('I3ConfigParser', () {

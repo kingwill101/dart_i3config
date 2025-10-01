@@ -1,0 +1,280 @@
+/// AST (Abstract Syntax Tree) classes for i3/Sway configuration files.
+///
+/// This module defines a sealed class hierarchy for representing parsed
+/// configuration elements with better type safety and exhaustiveness checking.
+library;
+
+import 'package:source_span/source_span.dart';
+import 'parser.dart';
+
+/// Base class for all configuration elements.
+sealed class ConfigElement {
+  /// Source span for this element (optional for backwards compatibility)
+  SourceSpan? span;
+
+  ConfigElement([this.span]);
+
+  /// Set the source span for this element
+  void setSpan(SourceSpan span) => this.span = span;
+
+  /// Convert to JSON representation.
+  Map<String, dynamic> toJson();
+
+  /// Create from JSON representation.
+  static ConfigElement fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'Config':
+        return Config.fromJson(json);
+      case 'Block':
+        return Block.fromJson(json);
+      case 'Command':
+        return Command.fromJson(json);
+      case 'Comment':
+        return Comment.fromJson(json);
+      default:
+        throw Exception('Unknown ConfigElement type: ${json['type']}');
+    }
+  }
+}
+
+/// Root configuration container.
+class Config extends ConfigElement {
+  final List<ConfigElement> statements;
+
+  Config(this.statements, [super.span]);
+
+  @override
+  String toString() => 'Config(statements: $statements)';
+
+  /// Compatibility property for existing API.
+  /// Returns all statements as elements.
+  List<ConfigElement> get elements => statements;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'Config',
+    'statements': statements.map((s) => s.toJson()).toList(),
+  };
+
+  factory Config.fromJson(Map<String, dynamic> json) => Config(
+    (json['statements'] as List).map((s) => ConfigElement.fromJson(s)).toList(),
+  );
+
+  /// Static parse method for backward compatibility.
+  static Config parse(String configContent, {Uri? url}) {
+    final parser = Parser();
+    return parser.parse(configContent, url: url);
+  }
+}
+
+/// Base class for all statements.
+sealed class Statement extends ConfigElement {
+  Statement([super.span]);
+}
+
+// All statements are now generic Command objects - no specific statement types
+
+/// Block statement: `{ ... }` with optional type and identifier
+class Block extends Statement {
+  final String? blockType; // 'mode', 'bar', 'input', 'output', 'seat', etc.
+  final Value? identifier;
+  final List<ConfigElement> body;
+
+  Block(this.blockType, this.identifier, this.body, [super.span]);
+
+  @override
+  String toString() =>
+      'Block(type: $blockType, identifier: $identifier, body: $body)';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'Block',
+    'blockType': blockType,
+    'identifier': identifier?.toJson(),
+    'body': body.map((b) => b.toJson()).toList(),
+  };
+
+  factory Block.fromJson(Map<String, dynamic> json) => Block(
+    json['blockType'],
+    json['identifier'] != null ? Value.fromJson(json['identifier']) : null,
+    (json['body'] as List).map((b) => ConfigElement.fromJson(b)).toList(),
+  );
+}
+
+/// Generic command statement
+class Command extends Statement {
+  final String head;
+  final List<Value> args;
+  final List<Criterion>? criteria;
+  final Block? block;
+
+  Command(this.head, this.args, [this.criteria, this.block, SourceSpan? span])
+    : super(span);
+
+  @override
+  String toString() =>
+      'Command(head: $head, args: $args, criteria: $criteria, block: $block)';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'Command',
+    'head': head,
+    'args': args.map((a) => a.toJson()).toList(),
+    'criteria': criteria?.map((c) => c.toJson()).toList(),
+    'block': block?.toJson(),
+  };
+
+  factory Command.fromJson(Map<String, dynamic> json) => Command(
+    json['head'],
+    (json['args'] as List).map((a) => Value.fromJson(a)).toList(),
+    json['criteria'] != null
+        ? (json['criteria'] as List).map((c) => Criterion.fromJson(c)).toList()
+        : null,
+    json['block'] != null ? Block.fromJson(json['block']) : null,
+  );
+}
+
+/// Comment element
+class Comment extends ConfigElement {
+  final String content;
+
+  Comment(this.content, [super.span]);
+
+  @override
+  String toString() => 'Comment(content: $content)';
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'Comment', 'content': content};
+
+  factory Comment.fromJson(Map<String, dynamic> json) =>
+      Comment(json['content']);
+}
+
+/// Base class for all values
+sealed class Value {
+  /// Source span for this value (optional for backwards compatibility)
+  SourceSpan? span;
+
+  Value([this.span]);
+
+  /// Set the source span for this value
+  void setSpan(SourceSpan span) => this.span = span;
+
+  /// Convert to JSON representation.
+  Map<String, dynamic> toJson();
+
+  /// Create from JSON representation.
+  static Value fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'Quoted':
+        return Quoted.fromJson(json);
+      case 'VariableRef':
+        return VariableRef.fromJson(json);
+      case 'BareArg':
+        return BareArg.fromJson(json);
+      default:
+        throw Exception('Unknown Value type: ${json['type']}');
+    }
+  }
+}
+
+/// Quoted string value
+class Quoted extends Value {
+  final String value;
+  final String quoteChar; // '"' or "'"
+
+  Quoted(this.value, this.quoteChar, [super.span]);
+
+  @override
+  String toString() => 'Quoted($quoteChar$value$quoteChar)';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'Quoted',
+    'value': value,
+    'quoteChar': quoteChar,
+  };
+
+  factory Quoted.fromJson(Map<String, dynamic> json) =>
+      Quoted(json['value'], json['quoteChar']);
+}
+
+/// Variable reference: `$variable`
+class VariableRef extends Value {
+  final String name;
+
+  VariableRef(this.name, [super.span]);
+
+  @override
+  String toString() => 'VariableRef(\$$name)';
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'VariableRef', 'name': name};
+
+  factory VariableRef.fromJson(Map<String, dynamic> json) =>
+      VariableRef(json['name']);
+}
+
+/// Bare argument (unquoted value)
+class BareArg extends Value {
+  final String value;
+
+  BareArg(this.value, [super.span]);
+
+  @override
+  String toString() => 'BareArg($value)';
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'BareArg', 'value': value};
+
+  factory BareArg.fromJson(Map<String, dynamic> json) => BareArg(json['value']);
+}
+
+/// Key part for bindings (symbolic or code)
+class KeyPart {
+  final String value;
+
+  const KeyPart(this.value);
+
+  @override
+  String toString() => 'KeyPart($value)';
+
+  Map<String, dynamic> toJson() => {'value': value};
+
+  factory KeyPart.fromJson(Map<String, dynamic> json) => KeyPart(json['value']);
+}
+
+/// Criterion for criteria blocks: `key=value`
+class Criterion {
+  final String key;
+  final Value value;
+
+  /// Source span for this criterion (optional for backwards compatibility)
+  SourceSpan? span;
+
+  Criterion(this.key, this.value, [this.span]);
+
+  /// Set the source span for this criterion
+  void setSpan(SourceSpan span) => this.span = span;
+
+  @override
+  String toString() => 'Criterion($key=${value.toString()})';
+
+  Map<String, dynamic> toJson() => {'key': key, 'value': value.toJson()};
+
+  factory Criterion.fromJson(Map<String, dynamic> json) =>
+      Criterion(json['key'], Value.fromJson(json['value']));
+}
+
+/// Parse error with location information
+class ParseError extends Error {
+  final String message;
+  final int line;
+  final int column;
+  final String? context;
+
+  ParseError(this.message, this.line, this.column, [this.context]);
+
+  @override
+  String toString() => 'ParseError at line $line, column $column: $message';
+}
