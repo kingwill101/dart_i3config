@@ -89,8 +89,9 @@ class I3ConfigParser {
 
       if (line.startsWith('#')) {
         // Get the current container (either config or last section)
-        final container =
-            sectionStack.isEmpty ? config.elements : sectionStack.last.children;
+        final container = sectionStack.isEmpty
+            ? config.elements
+            : sectionStack.last.children;
 
         // Try to find the last comment block
         CommentBlock? commentBlock;
@@ -107,13 +108,15 @@ class I3ConfigParser {
       }
 
       // Check for section start
-      final sectionStartMatch =
-          RegExp(r'(\w+)\s*(\S+)?\s*(?<!\\)\{(?![^"]*"\s*$)').firstMatch(line);
+      final sectionStartMatch = RegExp(
+        r'(\w+)\s*(\S+)?\s*(?<!\\)\{(?![^"]*"\s*$)',
+      ).firstMatch(line);
       if (sectionStartMatch != null) {
         final sectionName = sectionStartMatch.group(1)!;
         final sectionKey = sectionStartMatch.group(2);
-        final fullSectionName =
-            sectionKey != null ? '$sectionName $sectionKey' : sectionName;
+        final fullSectionName = sectionKey != null
+            ? '$sectionName $sectionKey'
+            : sectionName;
         final newSection = Section(fullSectionName);
 
         if (sectionStack.isEmpty) {
@@ -133,8 +136,9 @@ class I3ConfigParser {
       }
 
       // Check for array addition
-      final arrayMatch =
-          RegExp(r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''').firstMatch(line);
+      final arrayMatch = RegExp(
+        r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''',
+      ).firstMatch(line);
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
         String rawValue = arrayMatch.group(2)!;
@@ -146,33 +150,40 @@ class I3ConfigParser {
         final arrayValue = parseValue(rawValue);
 
         if (sectionStack.isEmpty) {
-          final arrayElement = config.elements.lastWhere(
-            (element) => element is ArrayElement && element.name == arrayName,
-            orElse: () {
-              final newArrayElement = ArrayElement(arrayName);
-              config.elements.add(newArrayElement);
-              return newArrayElement;
-            },
-          ) as ArrayElement;
+          final arrayElement =
+              config.elements.lastWhere(
+                    (element) =>
+                        element is ArrayElement && element.name == arrayName,
+                    orElse: () {
+                      final newArrayElement = ArrayElement(arrayName);
+                      config.elements.add(newArrayElement);
+                      return newArrayElement;
+                    },
+                  )
+                  as ArrayElement;
           arrayElement.values.add(arrayValue);
         } else {
           final currentSection = sectionStack.last;
-          final existingArray = currentSection.children.lastWhere(
-            (element) => element is ArrayElement && element.name == arrayName,
-            orElse: () {
-              final newArrayElement = ArrayElement(arrayName);
-              currentSection.children.add(newArrayElement);
-              return newArrayElement;
-            },
-          ) as ArrayElement;
+          final existingArray =
+              currentSection.children.lastWhere(
+                    (element) =>
+                        element is ArrayElement && element.name == arrayName,
+                    orElse: () {
+                      final newArrayElement = ArrayElement(arrayName);
+                      currentSection.children.add(newArrayElement);
+                      return newArrayElement;
+                    },
+                  )
+                  as ArrayElement;
           existingArray.values.add(arrayValue);
         }
         continue;
       }
 
       // Check for property
-      final propertyMatch =
-          RegExp(r'''(\w+)\s*=\s*(["'].*?["']|\S+)''').firstMatch(line);
+      final propertyMatch = RegExp(
+        r'''(\w+)\s*=\s*(["'].*?["']|\S+)''',
+      ).firstMatch(line);
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
         String rawValue = propertyMatch.group(2)!;
