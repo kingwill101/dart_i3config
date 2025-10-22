@@ -1,3 +1,58 @@
+## 1.1.0 (Legacy)
+
+### Major Features
+- **Dedicated Assignment AST**: Assignment statements like `order += "value"` are now parsed as first-class `Assignment` objects instead of generic commands
+- **Semantic Clarity**: Clean API with `assignment.variable`, `assignment.operator`, and `assignment.values` properties
+- **Dotted Identifiers**: Full support for complex assignments like `bar.colors.focused = "#ffffff"`
+- **Enhanced Grammar**: Implements proper assignment grammar: `LHS WS* AssignOp WS* RhsList`
+- **Comprehensive Coverage**: Command parsing unified across blocks, chains, criteria, and escape sequences
+- **Actionable Errors**: `parseWithDetails` now normalizes suggestions for common syntax issues
+
+### Breaking Changes
+- **Assignment Parsing**: Assignment statements are no longer parsed as `Command` objects with `head='assign'`
+- **Migration Required**: Update code using `whereType<Command>().where((cmd) => cmd.head == 'assign')` to use `whereType<Assignment>()`
+
+### New API
+- `Assignment` class: Dedicated AST node for assignment statements
+- `Assignment.variable`: Left-hand side variable name (supports dotted identifiers)  
+- `Assignment.operator`: Assignment operator ('=' or '+=')
+- `Assignment.values`: List of right-hand side values
+- Full JSON serialization support for Assignment objects
+- Visitor pattern support with `visitAssignment()` method
+
+### Tooling & Documentation
+- Added `test/v2/advanced_parser_test.dart` to cover grammar breadth, error reporting, and line continuations
+- Refreshed V2 API reference, migration guide, and README with 2.0 guidance
+
+### Migration Guide
+
+#### Before (V3.0.x):
+```dart
+// Old confusing way
+final assignments = config.statements
+    .whereType<Command>()
+    .where((cmd) => cmd.head == 'assign');
+    
+for (final cmd in assignments) {
+  final variable = (cmd.args[0] as BareArg).value;
+  final operator = (cmd.args[1] as BareArg).value;
+  final value = cmd.args[2];
+}
+```
+
+#### After (V2.0.0+):
+```dart
+// New clean way
+final assignments = config.statements
+    .whereType<Assignment>();
+    
+for (final assignment in assignments) {
+  final variable = assignment.variable;
+  final operator = assignment.operator;
+  final value = assignment.values[0];
+}
+```
+
 ## 3.0.0
 
 ### Major Features

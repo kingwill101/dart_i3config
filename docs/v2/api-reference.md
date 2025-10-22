@@ -1,0 +1,478 @@
+# V2 API Reference
+
+Complete API reference for i3conf V2.
+
+## Core Classes
+
+### Config
+Root configuration container.
+
+```dart
+class Config extends ConfigElement {
+  final List<ConfigElement> statements;
+  
+  Config(this.statements, [super.span]);
+  
+  // Parse configuration from string
+  static Config parse(String content);
+  
+  // Convert to JSON
+  Map<String, dynamic> toJson();
+  
+  // Create from JSON
+  factory Config.fromJson(Map<String, dynamic> json);
+}
+```
+
+### ConfigElement (Sealed)
+Base class for all configuration elements.
+
+```dart
+sealed class ConfigElement {
+  SourceSpan? span;
+  
+  ConfigElement([this.span]);
+  
+  // Set source span
+  void setSpan(SourceSpan span);
+  
+  // Convert to JSON
+  Map<String, dynamic> toJson();
+  
+  // Create from JSON
+  static ConfigElement fromJson(Map<String, dynamic> json);
+}
+```
+
+### Statement (Sealed)
+Base class for all statements (extends ConfigElement).
+
+```dart
+sealed class Statement extends ConfigElement {
+  Statement([super.span]);
+}
+```
+
+## Statement Types
+
+### Assignment
+Represents variable assignments with operators.
+
+```dart
+class Assignment extends Statement {
+  final String variable;
+  final AssignmentOperator operator;
+  final List<Value> values;
+  
+  Assignment(this.variable, this.operator, this.values, [super.span]);
+  
+  // Assignment operators
+  enum AssignmentOperator {
+    assign,  // =
+    append,  // +=
+  }
+  
+  // Create from symbol
+  static AssignmentOperator fromSymbol(String symbol);
+}
+```
+
+### Block
+Represents block structures with optional identifier and nested body.
+
+```dart
+class Block extends Statement {
+  final String? blockType;          // e.g. bar, mode, input
+  final Value? identifier;          // Quoted, BareArg, etc.
+  final List<ConfigElement> body;   // Nested statements
+  Block? parentBlock;
+
+  Block(this.blockType, this.identifier, this.body, [super.span]);
+
+  List<Block> get childBlocks;      // Convenience view over nested blocks
+}
+
+// Utility to wire up parent references after parsing
+void buildBlockHierarchy(Config config);
+```
+
+### Command
+Represents commands with optional block.
+
+```dart
+class Command extends Statement {
+  final String head;
+  final List<Value> args;
+  final List<Criterion>? criteria;
+  final Block? block;               // Non-null for commands that open blocks
+
+  Command(this.head, this.args, [this.criteria, this.block, SourceSpan? span])
+      : super(span);
+  
+  // Helper utilities live in mixins/extensions (see handlers.dart)
+}
+```
+
+### Comment
+Represents comments.
+
+```dart
+class Comment extends ConfigElement {
+  final String content;
+  
+  Comment(this.content, [super.span]);
+}
+```
+
+## Value Types
+
+### Value (Sealed)
+Base class for all values.
+
+```dart
+sealed class Value {
+  Value();
+}
+```
+
+### BareArg
+Bare (unquoted) argument values.
+
+```dart
+sealed class Value {
+  SourceSpan? span;
+
+  Value([this.span]);
+}
+
+class BareArg extends Value {
+  final String value;
+
+  BareArg(this.value, [super.span]);
+}
+
+class Quoted extends Value {
+  final String value;
+  final String quoteChar;
+
+  Quoted(this.value, this.quoteChar, [super.span]);
+}
+
+class VariableRef extends Value {
+  final String name;
+
+  VariableRef(this.name, [super.span]);
+}
+```
+
+### Criterion
+Represents entries inside criteria blocks (`[class="Firefox"]`).
+
+```dart
+class Criterion {
+  final String key;
+  final Value value;
+  SourceSpan? span;
+
+  Criterion(this.key, this.value, [this.span]);
+}
+```
+
+## Parser API
+
+```dart
+class Parser {
+  Config parse(String content, {Uri? url});
+  ParseResult parseWithDetails(String content, {Uri? url});
+}
+```
+
+- `parse` throws `ParseError` on failure and supports line continuation preprocessing.
+- `parseWithDetails` returns `ParseSuccess` / `ParseFailure`, preserving suggestions for recovery.
+
+### VariableRef
+Variable references.
+
+```dart
+class VariableRef extends Value {
+  final String name;
+  
+  VariableRef(this.name);
+}
+```
+
+## Processing Classes
+
+### ConfigProcessor
+Main processor for configuration processing.
+
+```dart
+class ConfigProcessor implements BlockHandlerRegistry {
+  final ProcessingContext context;
+  
+  ConfigProcessor();
+  
+  // Process configuration
+  Future<void> process(Config config);
+  
+  // Register handlers
+  void registerCommandHandler(CommandHandler handler);
+  void registerBlockHandler(BlockHandler handler);
+  
+  // State management
+  void pushState(ProcessorState state);
+  void popState();
+  ProcessorState get currentState;
+}
+```
+
+### ProcessingContext
+Context for variable and option management.
+
+```dart
+class ProcessingContext {
+  final Map<String, dynamic> variables;
+  final Map<String, String> options;
+  final ProcessingContext? parent;
+  
+  ProcessingContext({this.parent});
+  
+  // Variable operations
+  void setVariable(String name, dynamic value);
+  dynamic getVariable(String name);
+  bool hasVariable(String name);
+  
+  // Variable expansion
+  String expandVariables(String text);
+  
+  // Context management
+  ProcessingContext createChild();
+  void mergeChild(ProcessingContext child);
+}
+```
+
+## Handler Interfaces
+
+### CommandHandler
+Interface for command handlers.
+
+```dart
+abstract class CommandHandler {
+  String get commandName;
+  FutureOr<dynamic> handle(Command command, Context context);
+}
+```
+
+### BlockHandler
+Interface for block handlers.
+
+```dart
+abstract class BlockHandler {
+  String get blockType;
+  FutureOr<void> handle(Block block, Context context);
+  
+  // Scoped command registration
+  void registerScopedCommands(BlockHandlerRegistry registry);
+  
+  // Child processing
+  FutureOr<void>? processChildren(Block block, Context context);
+  
+  // Post-processing hook
+  FutureOr<void> afterChildrenProcessed(Block block, Context context);
+}
+```
+
+### BlockHandlerRegistry
+Interface for registering scoped commands.
+
+```dart
+abstract class BlockHandlerRegistry {
+  void registerCommand(String commandName, CommandHandler handler);
+}
+```
+
+## Base Handler Classes
+
+### BaseCommandHandler<T>
+Base class for command handlers with built-in functionality.
+
+```dart
+abstract class BaseCommandHandler<T> implements CommandHandler {
+  @override
+  String get commandName;
+  
+  @override
+  FutureOr<T?> handle(Command command, Context context);
+  
+  // Built-in value expansion
+  String expandValue(Value value, Context context);
+  
+  // Type-safe argument extraction
+  String getArgAsString(int index, Context context);
+  int getArgAsInt(int index, Context context);
+  double getArgAsDouble(int index, Context context);
+  bool getArgAsBool(int index, Context context);
+}
+```
+
+### BaseBlockHandler
+Base class for block handlers with built-in functionality.
+
+```dart
+abstract class BaseBlockHandler implements BlockHandler {
+  @override
+  String get blockType;
+  
+  @override
+  FutureOr<void> handle(Block block, Context context);
+  
+  @override
+  void registerScopedCommands(BlockHandlerRegistry registry);
+  
+  @override
+  FutureOr<void>? processChildren(Block block, Context context);
+  
+  @override
+  FutureOr<void> afterChildrenProcessed(Block block, Context context);
+  
+  // Built-in value expansion
+  String expandValue(Value value, Context context);
+  
+  // Helper methods
+  String? getBlockIdentifier(Block block, Context context);
+  List<Command> findCommands(Block block, String commandName);
+  Command? findFirstCommand(Block block, String commandName);
+}
+```
+
+## Built-in Handlers
+
+### SetCommandHandler
+Built-in handler for `set` commands.
+
+```dart
+class SetCommandHandler extends BaseCommandHandler<String> {
+  @override
+  String get commandName => 'set';
+  
+  @override
+  String? handle(Command command, Context context);
+}
+```
+
+## State Machine
+
+### ProcessorState
+Base class for processing states.
+
+```dart
+abstract class ProcessorState {
+  String get stateName;
+  Future<void> process(ConfigElement element, ConfigProcessor processor);
+}
+```
+
+### InitialState
+Initial processing state that routes elements.
+
+```dart
+class InitialState extends ProcessorState {
+  @override
+  String get stateName => 'Initial';
+  
+  @override
+  Future<void> process(ConfigElement element, ConfigProcessor processor);
+}
+```
+
+### CommandProcessingState
+Processes command elements.
+
+```dart
+class CommandProcessingState extends ProcessorState {
+  @override
+  String get stateName => 'CommandProcessing';
+  
+  @override
+  Future<void> process(ConfigElement element, ConfigProcessor processor);
+}
+```
+
+### BlockProcessingState
+Processes block elements.
+
+```dart
+class BlockProcessingState extends ProcessorState {
+  @override
+  String get stateName => 'BlockProcessing';
+  
+  @override
+  Future<void> process(ConfigElement element, ConfigProcessor processor);
+}
+```
+
+### AssignmentProcessingState
+Processes assignment elements.
+
+```dart
+class AssignmentProcessingState extends ProcessorState {
+  @override
+  String get stateName => 'AssignmentProcessing';
+  
+  @override
+  Future<void> process(ConfigElement element, ConfigProcessor processor);
+}
+```
+
+## Usage Examples
+
+### Basic Processing
+```dart
+final config = Config.parse(configContent);
+final processor = ConfigProcessor();
+await processor.process(config);
+```
+
+### Custom Command Handler
+```dart
+class MyCommandHandler extends BaseCommandHandler<String> {
+  @override
+  String get commandName => 'my_command';
+  
+  @override
+  String? handle(Command command, Context context) {
+    final value = command.getArgAsString(0, context);
+    return value;
+  }
+}
+```
+
+### Custom Block Handler
+```dart
+class MyBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'my_block';
+  
+  @override
+  void handle(Block block, Context context) {
+    // Block processing logic
+  }
+  
+  @override
+  void registerScopedCommands(BlockHandlerRegistry registry) {
+    registry.registerCommand('scoped_cmd', MyScopedHandler());
+  }
+}
+```
+
+### Simple AST Iteration
+```dart
+final config = Config.parse(configContent);
+for (final element in config.statements) {
+  if (element is Command) {
+    print('Command: ${element.head}');
+  } else if (element is Assignment) {
+    print('Assignment: ${element.variable}');
+  }
+}
+```

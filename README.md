@@ -4,13 +4,31 @@ A robust Dart library for parsing and manipulating i3 window manager configurati
 
 ## Features
 
-- Full support for i3 configuration syntax
+- Full support for i3 configuration syntax (including nested blocks and command chains)
 - Preserves comments and formatting
 - Handles nested sections
 - Type inference for values (numbers, booleans, strings)
 - Built-in JSON serialization
 - Preserves order of configuration elements
-- Comprehensive error handling
+- Comprehensive error handling with contextual suggestions
+- Dedicated AST nodes for assignments (`Assignment`) and criteria (`Criterion`)
+- Line continuation support (`\`) with source-span tracking
+
+## What's New in 2.0.0
+
+- **Assignment-first AST** – variable assignments are represented by the new `Assignment` statement
+- **Richer grammar coverage** – nested block parsing, complex criteria, chained commands, and escape sequences now share a single command pipeline
+- **Actionable errors** – `Parser.parseWithDetails` returns suggestions for common syntax issues
+- **Extended documentation** – refreshed migration guide, API reference, and end-to-end examples for V2
+
+## Documentation
+
+📚 **[Complete Documentation](docs/README.md)** - Comprehensive guides for both V1 and V2
+
+- **[V1 Documentation](docs/v1/)** - Simple AST-based parser
+- **[V2 Documentation](docs/v2/)** - State machine architecture  
+- **[V1 vs V2 Comparison](docs/comparison.md)** - Side-by-side examples
+- **[Migration Guide](docs/v2/migration.md)** - Upgrade from V1 to V2
 
 ## Parser Versions
 
@@ -36,7 +54,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  i3config: ^3.0.0
+  i3config: ^2.0.0
 ```
 
 Or use the development version:
@@ -157,9 +175,9 @@ if (generalCommand.block != null) {
 }
 ```
 
-## Array Handling
+## Assignment Handling
 
-Support for i3's array syntax:
+Support for i3's assignment syntax with dedicated Assignment objects:
 
 ```dart
 import 'package:i3config/i3config.dart';
@@ -171,25 +189,23 @@ order += "battery 0"
 order += "clock"
 ''');
 
-// Find array assignment commands (parsed as "assign" commands)
-final orderCommands = config.statements
-    .whereType<Command>()
-    .where((cmd) => cmd.head == 'assign' && 
-                   cmd.args.isNotEmpty && 
-                   cmd.args[0].toString().contains('order'));
+// Find assignment statements (now proper Assignment objects)
+final orderAssignments = config.statements
+    .whereType<Assignment>()
+    .where((assignment) => assignment.variable == 'order');
 
-print('Array values:');
-for (final cmd in orderCommands) {
-  if (cmd.args.length >= 3) {
-    final variable = cmd.args[0]; // order
-    final operator = cmd.args[1]; // +=
-    final value = cmd.args[2];    // The actual value
-    print('  ${variable} ${operator} ${value}');
-    if (cmd.span != null) {
-      print('    (line ${cmd.span!.start.line + 1})');
-    }
+print('Assignment values:');
+for (final assignment in orderAssignments) {
+  print('  ${assignment.variable} ${assignment.operator} ${assignment.values[0]}');
+  if (assignment.span != null) {
+    print('    (line ${assignment.span!.start.line + 1})');
   }
 }
+
+// Support for dotted identifiers
+final dottedConfig = Config.parse('bar.colors.focused = "#ffffff"');
+final dottedAssignment = dottedConfig.statements.first as Assignment;
+print('Dotted assignment: ${dottedAssignment.variable} = ${dottedAssignment.values[0]}');
 ```
 
 ## Error Handling
