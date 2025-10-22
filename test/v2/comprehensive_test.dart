@@ -1,17 +1,16 @@
 import 'package:test/test.dart';
 import 'package:i3config/i3config_v2.dart';
-import 'package:i3config/src/v2/ast.dart';
 
 void main() {
   group('Comprehensive i3/Sway Parser Tests', () {
     group('Basic Functionality', () {
       test('parse simple set statement', () {
         final configContent = 'set \$mod Mod4';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'set');
         expect(command.args.length, 2);
@@ -23,11 +22,11 @@ void main() {
 
       test('parse include statement', () {
         final configContent = 'include "~/.config/i3/config"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'include');
         expect(command.args.length, 1);
@@ -37,11 +36,11 @@ void main() {
 
       test('parse simple command', () {
         final configContent = 'exec i3-sensible-terminal';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'exec');
         expect(command.args.length, 1);
@@ -50,11 +49,11 @@ void main() {
 
       test('parse variable reference', () {
         final configContent = 'set \$workspace1 "1: Terminal"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'set');
         expect(command.args.length, 2);
@@ -66,7 +65,7 @@ void main() {
 
       test('parse empty configuration', () {
         final configContent = '';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 0);
       });
@@ -75,11 +74,11 @@ void main() {
     group('Comments', () {
       test('parse single comment', () {
         final configContent = '# This is a comment';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Comment>());
-        
+
         final comment = config.statements.first as Comment;
         expect(comment.content, '# This is a comment');
       });
@@ -91,7 +90,7 @@ set \$mod Mod4
 # Start terminal
 exec i3-sensible-terminal
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 4);
         expect(config.statements[0], isA<Comment>());
@@ -104,11 +103,11 @@ exec i3-sensible-terminal
     group('Quoted Strings', () {
       test('parse single-quoted strings', () {
         final configContent = "set \$msg 'Hello World'";
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.args.length, 2);
         expect(command.args[1], isA<Quoted>());
@@ -118,11 +117,11 @@ exec i3-sensible-terminal
 
       test('parse double-quoted strings', () {
         final configContent = 'set \$msg "Hello World"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.args.length, 2);
         expect(command.args[1], isA<Quoted>());
@@ -134,11 +133,11 @@ exec i3-sensible-terminal
     group('Bare Arguments', () {
       test('parse bare arguments with special characters', () {
         final configContent = 'set \$path ~/.config/i3/config';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.args.length, 2);
         expect(command.args[1], isA<BareArg>());
@@ -147,11 +146,11 @@ exec i3-sensible-terminal
 
       test('parse bare arguments with equals signs', () {
         final configContent = 'set \$option key=value';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.args.length, 2);
         expect(command.args[1], isA<BareArg>());
@@ -161,12 +160,13 @@ exec i3-sensible-terminal
 
     group('Commands with Criteria', () {
       test('parse command with single criteria', () {
-        final configContent = 'for_window [class=".*"] exec i3-sensible-terminal';
-        
+        final configContent =
+            'for_window [class=".*"] exec i3-sensible-terminal';
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'for_window');
         expect(command.args.length, 2);
@@ -178,12 +178,13 @@ exec i3-sensible-terminal
       });
 
       test('parse command with multiple criteria', () {
-        final configContent = 'assign [class="Firefox" window_role="browser"] workspace 2';
-        
+        final configContent =
+            'assign [class="Firefox" window_role="browser"] workspace 2';
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'assign');
         expect(command.criteria, isNotNull);
@@ -201,17 +202,17 @@ bar {
     position top
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'bar');
         expect(command.args, isEmpty);
         expect(command.criteria, isNull);
         expect(command.block, isA<Block>());
-        
+
         final block = command.block as Block;
         expect(block.body.length, 2);
         expect(block.body[0], isA<Command>());
@@ -227,11 +228,11 @@ mode "resize" {
     bindsym j resize grow height 10 px or 10 ppt
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'mode');
         expect(command.args.length, 1);
@@ -239,7 +240,7 @@ mode "resize" {
         expect((command.args[0] as Quoted).value, 'resize');
         expect(command.criteria, isNull);
         expect(command.block, isA<Block>());
-        
+
         final block = command.block as Block;
         expect(block.body.length, 2);
         expect(block.body[0], isA<Command>());
@@ -255,11 +256,11 @@ input "type:keyboard" {
     xkb_variant dvorak
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'input');
         expect(command.args.length, 1);
@@ -267,7 +268,7 @@ input "type:keyboard" {
         expect((command.args[0] as Quoted).value, 'type:keyboard');
         expect(command.criteria, isNull);
         expect(command.block, isA<Block>());
-        
+
         final block = command.block as Block;
         expect(block.body.length, 2);
         expect(block.body[0], isA<Command>());
@@ -283,11 +284,11 @@ output "eDP-1" {
     position 0,0
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'output');
         expect(command.args.length, 1);
@@ -295,7 +296,7 @@ output "eDP-1" {
         expect((command.args[0] as Quoted).value, 'eDP-1');
         expect(command.criteria, isNull);
         expect(command.block, isA<Block>());
-        
+
         final block = command.block as Block;
         expect(block.body.length, 2);
         expect(block.body[0], isA<Command>());
@@ -311,11 +312,11 @@ seat "seat0" {
     hide_cursor 3000
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'seat');
         expect(command.args.length, 1);
@@ -323,7 +324,7 @@ seat "seat0" {
         expect((command.args[0] as Quoted).value, 'seat0');
         expect(command.criteria, isNull);
         expect(command.block, isA<Block>());
-        
+
         final block = command.block as Block;
         expect(block.body.length, 2);
         expect(block.body[0], isA<Command>());
@@ -336,11 +337,11 @@ seat "seat0" {
     group('Bindsym and Bindcode', () {
       test('parse bindsym statement', () {
         final configContent = 'bindsym \$mod+Return exec i3-sensible-terminal';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'bindsym');
         expect(command.args.length, 4);
@@ -356,11 +357,11 @@ seat "seat0" {
 
       test('parse bindcode statement', () {
         final configContent = 'bindcode \$mod+36 exec i3-sensible-terminal';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'bindcode');
         expect(command.args.length, 4);
@@ -376,11 +377,11 @@ seat "seat0" {
 
       test('parse complex key combination', () {
         final configContent = 'bindsym \$mod+Shift+q exec i3-sensible-terminal';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'bindsym');
         expect(command.args.length, 4);
@@ -407,24 +408,24 @@ mode "resize" {
     bindsym h resize shrink width 10 px
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 3);
-        
+
         // First element: command with criteria
         expect(config.statements[0], isA<Command>());
         final command = config.statements[0] as Command;
         expect(command.head, 'exec_always');
         expect(command.criteria, isNotNull);
         expect(command.block, isNull);
-        
+
         // Second element: bar command
         expect(config.statements[1], isA<Command>());
         final barCommand = config.statements[1] as Command;
         expect(barCommand.head, 'bar');
         expect(barCommand.args, isEmpty);
         expect(barCommand.block, isA<Block>());
-        
+
         // Third element: mode command
         expect(config.statements[2], isA<Command>());
         final modeCommand = config.statements[2] as Command;
@@ -441,7 +442,7 @@ bindcode \$mod+36 exec i3-sensible-terminal
 include "~/.config/i3/config.local"
 exec i3-sensible-terminal
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 5);
         expect(config.statements[0], isA<Command>());
@@ -449,7 +450,7 @@ exec i3-sensible-terminal
         expect(config.statements[2], isA<Command>());
         expect(config.statements[3], isA<Command>());
         expect(config.statements[4], isA<Command>());
-        
+
         // Verify the command heads
         expect((config.statements[0] as Command).head, 'set');
         expect((config.statements[1] as Command).head, 'bindsym');
@@ -474,25 +475,25 @@ bindsym \$mod+Shift+q kill
 # Include additional config
 include "~/.config/i3/config.local"
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 8);
-        
+
         // Check first comment
         expect(config.statements[0], isA<Comment>());
-        
+
         // Check set statement
         expect(config.statements[1], isA<Command>());
         final setCommand = config.statements[1] as Command;
         expect(setCommand.head, 'set');
         expect(setCommand.args.length, 2);
-        
+
         // Check bindsym statement
         expect(config.statements[3], isA<Command>());
         final command = config.statements[3] as Command;
         expect(command.head, 'bindsym');
         expect(command.args.length, greaterThan(0));
-        
+
         // Check include statement
         expect(config.statements[7], isA<Command>());
         final includeCommand = config.statements[7] as Command;
@@ -503,9 +504,9 @@ include "~/.config/i3/config.local"
     group('API Compatibility', () {
       test('elements property works', () {
         final configContent = 'set \$mod Mod4';
-        
+
         final config = Config.parse(configContent);
-        
+
         expect(config.statements.length, 1);
         expect(config.elements.length, 1);
         expect(config.statements, equals(config.elements));
@@ -513,12 +514,12 @@ include "~/.config/i3/config.local"
 
       test('parser is permissive - parses unknown commands', () {
         final configContent = 'invalid syntax';
-        
+
         // The parser is permissive and treats unknown commands as generic commands
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'invalid');
         expect(command.args.length, 1);
@@ -529,14 +530,14 @@ include "~/.config/i3/config.local"
     group('JSON Serialization', () {
       test('JSON serialization works', () {
         final configContent = 'set \$mod Mod4';
-        
+
         final config = Config.parse(configContent);
         final json = config.toJson();
-        
+
         expect(json, isA<Map<String, dynamic>>());
         expect(json['type'], 'Config');
         expect(json['statements'], isA<List>());
-        
+
         // Test deserialization
         final restored = Config.fromJson(json);
         expect(restored.statements.length, 1);
@@ -545,15 +546,15 @@ include "~/.config/i3/config.local"
 
       test('Command JSON serialization for set statement', () {
         final configContent = 'set \$workspace1 "1: Terminal"';
-        
+
         final config = Config.parse(configContent);
         final command = config.statements.first as Command;
         final json = command.toJson();
-        
+
         expect(json['type'], 'Command');
         expect(json['head'], 'set');
         expect(json['args'], isA<List>());
-        
+
         // Test deserialization
         final restored = Command.fromJson(json);
         expect(restored.head, 'set');
@@ -562,15 +563,15 @@ include "~/.config/i3/config.local"
 
       test('Command JSON serialization', () {
         final configContent = 'exec i3-sensible-terminal';
-        
+
         final config = Config.parse(configContent);
         final command = config.statements.first as Command;
         final json = command.toJson();
-        
+
         expect(json['type'], 'Command');
         expect(json['head'], 'exec');
         expect(json['args'], isA<List>());
-        
+
         // Test deserialization
         final restored = Command.fromJson(json);
         expect(restored.head, 'exec');
@@ -583,16 +584,16 @@ bar {
     status_command i3status
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         final command = config.statements.first as Command;
         final json = command.toJson();
-        
+
         expect(json['type'], 'Command');
         expect(json['head'], 'bar');
         expect(json['args'], isA<List>());
         expect(json['args'], isEmpty);
-        
+
         // Test deserialization
         final restored = Command.fromJson(json);
         expect(restored.head, 'bar');
@@ -603,11 +604,11 @@ bar {
     group('Assignment Statements', () {
       test('parse assignment with equals', () {
         final configContent = 'order = "volume master"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Assignment>());
-        
+
         final assignment = config.statements.first as Assignment;
         expect(assignment.variable, 'order');
         expect(assignment.operator, AssignmentOperator.assign);
@@ -618,11 +619,11 @@ bar {
 
       test('parse assignment with plus equals', () {
         final configContent = 'order += "battery 0"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Assignment>());
-        
+
         final assignment = config.statements.first as Assignment;
         expect(assignment.variable, 'order');
         expect(assignment.operator, AssignmentOperator.append);
@@ -633,11 +634,11 @@ bar {
 
       test('parse dotted identifier assignment', () {
         final configContent = 'bar.colors.focused = "#ffffff"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Assignment>());
-        
+
         final assignment = config.statements.first as Assignment;
         expect(assignment.variable, 'bar.colors.focused');
         expect(assignment.operator, AssignmentOperator.assign);
@@ -650,12 +651,12 @@ bar {
     group('Command Chaining', () {
       test('parse command chain with semicolons', () {
         final configContent = 'exec terminal; exec editor';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 2);
         expect(config.statements[0], isA<Command>());
         expect(config.statements[1], isA<Command>());
-        
+
         final command1 = config.statements[0] as Command;
         final command2 = config.statements[1] as Command;
         expect(command1.head, 'exec');
@@ -665,13 +666,14 @@ bar {
       });
 
       test('parse complex command chain', () {
-        final configContent = 'set \$mod Mod4; bindsym \$mod+Return exec terminal';
-        
+        final configContent =
+            'set \$mod Mod4; bindsym \$mod+Return exec terminal';
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 2);
         expect(config.statements[0], isA<Command>());
         expect(config.statements[1], isA<Command>());
-        
+
         final command1 = config.statements[0] as Command;
         final command2 = config.statements[1] as Command;
         expect(command1.head, 'set');
@@ -683,11 +685,11 @@ bar {
     group('Line Continuations', () {
       test('parse line continuation with backslash', () {
         final configContent = 'exec i3-sensible-terminal\\\n    --option';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'exec');
         expect(command.args.length, 2);
@@ -697,11 +699,11 @@ bar {
 
       test('parse line continuation with spaces', () {
         final configContent = 'set \$path ~/.config/\\\n    i3/config';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'set');
         expect(command.args.length, 3);
@@ -714,26 +716,27 @@ bar {
     group('Escaped Characters', () {
       test('parse escaped brackets in strings', () {
         final configContent = 'set \$template "\\{\\{ }}"';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'set');
-        expect(command.args.length, 1);
+        expect(command.args.length, 2);
         expect(command.args[0], isA<VariableRef>());
         expect((command.args[0] as VariableRef).name, 'template');
-        // Note: The quoted string parsing fails due to curly braces, so only the variable is parsed
+        expect(command.args[1], isA<Quoted>());
+        expect((command.args[1] as Quoted).value, '{{ }}');
       });
 
       test('parse escaped quotes in strings', () {
         final configContent = 'set \$msg "He said \\"Hello\\""';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
         expect(config.statements.first, isA<Command>());
-        
+
         final command = config.statements.first as Command;
         expect(command.head, 'set');
         expect(command.args.length, 2);
@@ -756,24 +759,24 @@ bar {
     }
 }
 ''';
-        
+
         final config = Config.parse(configContent);
         expect(config.statements.length, 3);
-        
+
         // First two should be assignments
         expect(config.statements[0], isA<Assignment>());
         expect(config.statements[1], isA<Assignment>());
-        
+
         final assign1 = config.statements[0] as Assignment;
         final assign2 = config.statements[1] as Assignment;
         expect(assign1.variable, 'order');
         expect(assign1.operator, AssignmentOperator.append);
         expect((assign1.values[0] as Quoted).value, 'volume master');
-        
+
         expect(assign2.variable, 'order');
         expect(assign2.operator, AssignmentOperator.append);
         expect((assign2.values[0] as Quoted).value, 'battery 0');
-        
+
         // Third should be bar block command
         expect(config.statements[2], isA<Command>());
         final barCommand = config.statements[2] as Command;
@@ -811,27 +814,33 @@ mode "resize" {
     bindsym j resize grow height 10 px
 }
 ''';
-        
+
         final config = Config.parse(configContent);
-        expect(config.statements.length, 10); // 4 comments + 1 set + 2 bindsym + 2 assign + 1 bar (mode not parsed due to nested blocks)
-        
+        expect(
+          config.statements.length,
+          12,
+        ); // Includes mode block and nested statements
+
         // Check that we have the right mix of elements
         final commands = config.statements.whereType<Command>().toList();
-        expect(commands.length, 6); // 1 set + 2 bindsym + 2 assign + 1 bar (mode not parsed due to nested blocks)
-        
+        expect(
+          commands.length,
+          7,
+        ); // 1 set + 2 bindsym + 2 assign + bar + mode
+
         // Check specific commands
         expect(commands.any((c) => c.head == 'set'), isTrue);
         expect(commands.any((c) => c.head == 'bindsym'), isTrue);
         expect(commands.any((c) => c.head == 'assign'), isTrue);
         expect(commands.any((c) => c.head == 'bar'), isTrue);
-        // Note: 'mode' not parsed due to nested colors block limitation
+        expect(commands.any((c) => c.head == 'mode'), isTrue);
       });
     });
 
     group('Error Handling', () {
       test('handle unclosed quotes gracefully', () {
         final configContent = 'set \$msg "unclosed quote';
-        
+
         // Parser should handle this gracefully by parsing what it can
         final config = Config.parse(configContent);
         expect(config.statements.length, 1);
@@ -847,17 +856,17 @@ mode "resize" {
 set \$mod Mod4
 invalid syntax here
 ''';
-        
+
         // Parser should handle unknown commands by treating them as generic commands
         final config = Config.parse(configContent);
         expect(config.statements.length, 2);
-        
+
         // First statement: valid set command
         expect(config.statements[0], isA<Command>());
         final setCmd = config.statements[0] as Command;
         expect(setCmd.head, 'set');
         expect(setCmd.args.length, 2);
-        
+
         // Second statement: unknown command parsed generically
         expect(config.statements[1], isA<Command>());
         final invalidCmd = config.statements[1] as Command;

@@ -1,5 +1,5 @@
 /// PetitParser-based parser for i3/Sway configuration files.
-/// 
+///
 /// This module provides the main parser implementation using the comprehensive
 /// grammar specification with enhanced error reporting and line continuation support.
 library;
@@ -12,19 +12,19 @@ import 'grammar.dart';
 /// Main parser class for i3/Sway configuration files.
 class Parser {
   /// Parse configuration content into an AST.
-  /// 
+  ///
   /// This method preprocesses the content to handle line continuations,
   /// then parses it using the comprehensive grammar.
-  /// 
+  ///
   /// Throws [ParseError] if parsing fails, with precise location information.
   Config parse(String configContent, {Uri? url}) {
     try {
       // Create grammar with source content for position tracking
       final grammar = Grammar(configContent, url: url);
-      
+
       // Preprocess to handle line continuations
       final preprocessed = grammar.preprocess(configContent);
-      
+
       // Parse using the grammar
       return grammar.parse(preprocessed);
     } catch (e) {
@@ -35,19 +35,19 @@ class Parser {
       }
     }
   }
-  
+
   /// Parse configuration content with detailed error information.
-  /// 
+  ///
   /// Returns a result object that contains either the parsed configuration
   /// or detailed error information including suggestions for fixing issues.
   ParseResult parseWithDetails(String configContent, {Uri? url}) {
     try {
       // Create grammar with source content for position tracking
       final grammar = Grammar(configContent, url: url);
-      
+
       final preprocessed = grammar.preprocess(configContent);
-      final result = grammar.config.parse(preprocessed);
-      
+      final result = grammar.config.end().parse(preprocessed);
+
       if (result is Success) {
         return ParseResult.success(result.value);
       } else {
@@ -56,7 +56,7 @@ class Parser {
         final lines = preprocessed.substring(0, position).split('\n');
         final line = lines.length;
         final column = lines.last.length + 1;
-        
+
         return ParseResult.failure(
           ParseError(
             'Parse error: ${failure.message}',
@@ -78,18 +78,18 @@ class Parser {
       }
     }
   }
-  
+
   /// Generate suggestions for fixing parse errors.
   String? _suggestFix(String message, int position, String content) {
     // Simple suggestions based on common error patterns
-    if (message.contains('Expected')) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('expected')) {
       return 'Check syntax around the error location. Common issues include missing quotes, brackets, or semicolons.';
-    } else if (message.contains('Unexpected')) {
+    } else if (normalized.contains('unexpected')) {
       return 'Remove or fix the unexpected character or token.';
-    } else if (message.contains('End of input')) {
+    } else if (normalized.contains('end of input')) {
       return 'Configuration file appears to be incomplete. Check for missing closing brackets or quotes.';
     }
     return null;
   }
 }
-

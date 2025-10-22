@@ -1,8 +1,9 @@
 /// Minimal grammar for testing basic i3/Sway configuration parsing.
-/// 
+///
 /// This is the simplest possible grammar to get basic parsing working.
 library;
 
+import 'package:i3config/src/v2/value.dart';
 import 'package:petitparser/petitparser.dart';
 import 'package:source_span/source_span.dart';
 import 'ast.dart';
@@ -12,10 +13,13 @@ import 'ast.dart';
 /// Global source file reference for position tracking
 SourceFile? _globalSourceFile;
 
+final SettableParser<Command> _commandParser = undefined<Command>();
+bool _commandInitialized = false;
+
 /// Utility to annotate a node with span information
 T _annotate<T>(T node, int start, int end) {
   if (_globalSourceFile == null) return node;
-  
+
   if (node is ConfigElement) {
     node.setSpan(_globalSourceFile!.span(start, end));
   } else if (node is Value) {
@@ -61,6 +65,14 @@ String _processEscapeSequences(String content) {
           result.write(' '); // Escaped space
           i++; // Skip the space
           break;
+        case '{':
+          result.write('{');
+          i++; // Skip the '{'
+          break;
+        case '}':
+          result.write('}');
+          i++; // Skip the '}'
+          break;
         default:
           // Keep the backslash and next character as-is
           result.write(content[i]);
@@ -77,10 +89,10 @@ String _processEscapeSequences(String content) {
 String preprocess(String content) {
   final lines = content.split('\n');
   final processedLines = <String>[];
-  
+
   for (int i = 0; i < lines.length; i++) {
     final line = lines[i];
-    
+
     // Check for line continuation (backslash at end of line)
     if (line.endsWith('\\')) {
       // Find the next non-empty line
@@ -88,10 +100,11 @@ String preprocess(String content) {
       while (nextLine < lines.length && lines[nextLine].trim().isEmpty) {
         nextLine++;
       }
-      
+
       if (nextLine < lines.length) {
         // Join the lines with a space
-        final continuation = '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}';
+        final continuation =
+            '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}';
         processedLines.add(continuation);
         i = nextLine; // Skip the next line as it's been merged
       } else {
@@ -102,7 +115,7 @@ String preprocess(String content) {
       processedLines.add(line);
     }
   }
-  
+
   return processedLines.join('\n');
 }
 
@@ -110,7 +123,8 @@ String preprocess(String content) {
 
 Parser<String> ws() => pattern(' \t').plus().flatten();
 
-Parser newline() => (char('\r').optional() & char('\n')) | char('\n') | char('\r');
+Parser newline() =>
+    (char('\r').optional() & char('\n')) | char('\n') | char('\r');
 
 Parser wsOrNl() => pattern(' \t\r\n').star();
 
@@ -119,15 +133,30 @@ Parser<void> eof() => endOfInput();
 Parser<Comment> comment() => position()
     .seq((char('#') & pattern('^\r\n').star() & newline().optional()).flatten())
     .seq(position())
-    .map((vals) => _annotate(Comment((vals[1] as String).trim()), vals[0] as int, vals[2] as int));
+    .map(
+      (vals) => _annotate(
+        Comment((vals[1] as String).trim()),
+        vals[0] as int,
+        vals[2] as int,
+      ),
+    );
 
 Parser<dynamic> lineEnd() => newline() | eof();
 
 // ===== Escape sequences =====
 
-Parser<String> escapeSeq() => (char('\\') & 
-        (char('\\') | char('"') | char("'") | char('n') | char('r') | char('t') | char(' ')))
-    .flatten();
+Parser<String> escapeSeq() =>
+    (char('\\') &
+            (char('\\') |
+                char('"') |
+                char("'") |
+                char('n') |
+                char('r') |
+                char('t') |
+                char('{') |
+                char('}') |
+                char(' ')))
+        .flatten();
 
 // ===== Strings =====
 
@@ -138,30 +167,52 @@ Parser<String> sqChar() => pattern("^'\\\\\r\n");
 Parser<Quoted> dqString() => position()
     .seq((char('"') & (dqChar() | escapeSeq()).star() & char('"')).flatten())
     .seq(position())
-    .map((vals) => _annotate(
-        Quoted(_processEscapeSequences((vals[1] as String).substring(1, (vals[1] as String).length - 1)), '"'), 
-        vals[0] as int, 
-        vals[2] as int));
+    .map(
+      (vals) => _annotate(
+        Quoted(
+          _processEscapeSequences(
+            (vals[1] as String).substring(1, (vals[1] as String).length - 1),
+          ),
+          '"',
+        ),
+        vals[0] as int,
+        vals[2] as int,
+      ),
+    );
 
 Parser<Quoted> sqString() => position()
     .seq((char("'") & (sqChar() | escapeSeq()).star() & char("'")).flatten())
     .seq(position())
-    .map((vals) => _annotate(
-        Quoted(_processEscapeSequences((vals[1] as String).substring(1, (vals[1] as String).length - 1)), "'"), 
-        vals[0] as int, 
-        vals[2] as int));
+    .map(
+      (vals) => _annotate(
+        Quoted(
+          _processEscapeSequences(
+            (vals[1] as String).substring(1, (vals[1] as String).length - 1),
+          ),
+          "'",
+        ),
+        vals[0] as int,
+        vals[2] as int,
+      ),
+    );
 
 Parser quotedString() => dqString() | sqString();
 
 // ===== Variables =====
 
-Parser<String> varName() => (pattern('a-zA-Z_') & pattern('a-zA-Z0-9_\\-').star())
-    .flatten();
+Parser<String> varName() =>
+    (pattern('a-zA-Z_') & pattern('a-zA-Z0-9_\\-').star()).flatten();
 
 Parser<VariableRef> variableRef() => position()
     .seq(char('\$') & varName())
     .seq(position())
-    .map((vals) => _annotate(VariableRef((vals[1] as List)[1] as String), vals[0] as int, vals[2] as int));
+    .map(
+      (vals) => _annotate(
+        VariableRef((vals[1] as List)[1] as String),
+        vals[0] as int,
+        vals[2] as int,
+      ),
+    );
 
 // ===== Identifiers =====
 
@@ -171,14 +222,27 @@ Parser<String> identifier() => identChar().plus().flatten();
 
 // ===== Bare arguments =====
 
-Parser bareChar() => (pattern('a-zA-Z0-9_') | char('-') | char('.') | char('/') | 
-           char('~') | char('*') | char('?') | char('=') | char('+') | 
-           char(',') | char('@') | char('%'));
+Parser bareChar() =>
+    (pattern('a-zA-Z0-9_') |
+    char('-') |
+    char('.') |
+    char('/') |
+    char('~') |
+    char('*') |
+    char('?') |
+    char('=') |
+    char('+') |
+    char(',') |
+    char('@') |
+    char('%'));
 
 Parser<BareArg> bareArg() => position()
     .seq(bareChar().plus().flatten())
     .seq(position())
-    .map((vals) => _annotate(BareArg(vals[1] as String), vals[0] as int, vals[2] as int));
+    .map(
+      (vals) =>
+          _annotate(BareArg(vals[1] as String), vals[0] as int, vals[2] as int),
+    );
 
 // ===== Values =====
 
@@ -186,8 +250,8 @@ Parser value() => quotedString() | variableRef() | bareArg();
 
 // ===== Dotted identifiers for assignments =====
 
-Parser<String> dottedIdent() => (identifier() & (char('.') & identifier()).star())
-    .map((parts) {
+Parser<String> dottedIdent() =>
+    (identifier() & (char('.') & identifier()).star()).map((parts) {
       final first = parts[0] as String;
       final rest = parts[1] as List;
       final result = <String>[first];
@@ -201,8 +265,8 @@ Parser<String> lhs() => dottedIdent();
 
 Parser<String> assignOp() => (string('+=') | char('=')).flatten();
 
-Parser<List<Value>> rhsList() => (value() & (ws() & value()).star())
-    .map((parts) {
+Parser<List<Value>> rhsList() =>
+    (value() & (ws() & value()).star()).map((parts) {
       final result = <Value>[parts[0] as Value];
       final rest = parts[1] as List;
       for (final item in rest) {
@@ -213,30 +277,48 @@ Parser<List<Value>> rhsList() => (value() & (ws() & value()).star())
 
 // ===== Command head =====
 
-Parser<String> commandHead() => (pattern('a-zA-Z') & pattern('a-zA-Z0-9_\\-').star())
-    .flatten();
+Parser<String> commandHead() =>
+    (pattern('a-zA-Z') & pattern('a-zA-Z0-9_\\-').star()).flatten();
 
 // ===== Criteria parsing =====
 
 Parser critValue() => quotedString() | bareArg();
 
 Parser<Criterion> critItem() => position()
-    .seq(identifier() & ws().optional() & char('=') & ws().optional() & critValue())
+    .seq(
+      identifier() &
+          ws().optional() &
+          char('=') &
+          ws().optional() &
+          critValue(),
+    )
     .seq(position())
-    .map((vals) => _annotate(
-        Criterion((vals[1] as List)[0] as String, (vals[1] as List)[4] as Value), 
-        vals[0] as int, 
-        vals[2] as int));
+    .map(
+      (vals) => _annotate(
+        Criterion(
+          (vals[1] as List)[0] as String,
+          (vals[1] as List)[4] as Value,
+        ),
+        vals[0] as int,
+        vals[2] as int,
+      ),
+    );
 
-Parser<List<Criterion>> criteria() => (char('[') & ws().optional() & critItem() & (ws().optional() & critItem()).star() & ws().optional() & char(']'))
-    .map((parts) {
-      final items = <Criterion>[parts[2] as Criterion];
-      final rest = parts[3] as List;
-      for (final item in rest) {
-        items.add(item[1] as Criterion); // item is [ws, critItem]
-      }
-      return items;
-    });
+Parser<List<Criterion>> criteria() =>
+    (char('[') &
+            ws().optional() &
+            critItem() &
+            (ws().optional() & critItem()).star() &
+            ws().optional() &
+            char(']'))
+        .map((parts) {
+          final items = <Criterion>[parts[2] as Criterion];
+          final rest = parts[3] as List;
+          for (final item in rest) {
+            items.add(item[1] as Criterion); // item is [ws, critItem]
+          }
+          return items;
+        });
 
 // ===== Assignments =====
 
@@ -248,15 +330,22 @@ Parser<Assignment> assignStmt() => position()
       final lhsValue = parts[0] as String;
       final opSymbol = parts[2] as String;
       final rhsValues = parts[4] as List<Value>;
-      
-      return _annotate(Assignment(lhsValue, AssignmentOperator.fromSymbol(opSymbol), rhsValues), vals[0] as int, vals[2] as int);
+
+      return _annotate(
+        Assignment(
+          lhsValue,
+          AssignmentOperator.fromSymbol(opSymbol),
+          rhsValues,
+        ),
+        vals[0] as int,
+        vals[2] as int,
+      );
     });
 
 // ===== Argument patterns =====
 
-Parser<List<Value>> argPattern() => ((ws() & variableRef() & bareArg()) |
-                                    (ws() & value()))
-    .map((parts) {
+Parser<List<Value>> argPattern() =>
+    ((ws() & variableRef() & bareArg()) | (ws() & value())).map((parts) {
       if (parts.length == 3) {
         // This is [ws, variableRef, bareArg] - combine them
         return [parts[1] as Value, parts[2] as Value];
@@ -268,47 +357,81 @@ Parser<List<Value>> argPattern() => ((ws() & variableRef() & bareArg()) |
 
 // ===== Commands =====
 
-Parser<Command> command() => position()
-    .seq(commandHead() & 
-         argPattern().star() & 
-         (ws().optional() & criteria()).optional() & 
-         (ws().optional() & value()).star())
-    .seq(position())
-    .map((vals) {
-      final parts = vals[1] as List;
-      final head = parts[0] as String;
-      final args = <Value>[];
-      
-      // Add arguments before criteria (flatten the lists)
-      final argsBefore = parts[1] as List;
-      for (final item in argsBefore) {
-        final valueList = item as List<Value>;
-        args.addAll(valueList);
-      }
-      
-      // Add arguments after criteria
-      final argsAfter = parts[3] as List;
-      for (final item in argsAfter) {
-        args.add(item[1] as Value); // item is [ws?, value]
-      }
-      
-      // Extract criteria if present
-      final crit = parts[2] != null ? (parts[2] as List)[1] as List<Criterion> : null;
-      
-      return _annotate(Command(head, args, crit, null), vals[0] as int, vals[2] as int);
-    });
+Parser<Command> command() {
+  if (!_commandInitialized) {
+    _commandInitialized = true;
+    _commandParser.set(
+      position()
+          .seq(
+            commandHead() &
+                argPattern().star() &
+                (ws().optional() & criteria()).optional() &
+                (ws().optional() & value()).star() &
+                (wsOrNl().optional() & block()).optional(),
+          )
+          .seq(position())
+          .map((vals) {
+            final parts = vals[1] as List;
+            final head = parts[0] as String;
+            final args = <Value>[];
+
+            // Add arguments before criteria (flatten the lists)
+            final argsBefore = parts[1] as List;
+            for (final item in argsBefore) {
+              final valueList = item as List<Value>;
+              args.addAll(valueList);
+            }
+
+            // Add arguments after criteria
+            final argsAfter = parts[3] as List;
+            for (final item in argsAfter) {
+              args.add(item[1] as Value); // item is [ws?, value]
+            }
+
+            // Extract criteria if present
+            final crit = parts[2] != null
+                ? (parts[2] as List)[1] as List<Criterion>
+                : null;
+
+            Block? blockPart;
+            if (parts[4] != null) {
+              final blockList = parts[4] as List;
+              blockPart = blockList[1] as Block;
+              final blockSpan = blockPart.span;
+              blockPart = Block(
+                head,
+                blockPart.identifier,
+                blockPart.body,
+                blockSpan,
+              );
+            }
+
+            return _annotate(
+              Command(head, args, crit, blockPart),
+              vals[0] as int,
+              vals[2] as int,
+            );
+          }),
+    );
+  }
+  return _commandParser;
+}
 
 // ===== Command chains =====
 
-Parser<List<Command>> chainLine() => (command() & (ws().optional() & char(';') & ws().optional() & command()).plus())
-    .map((parts) {
-      final commands = <Command>[parts[0] as Command];
-      final rest = parts[1] as List;
-      for (final item in rest) {
-        commands.add(item[3] as Command); // item is [ws?, ';', ws?, command]
-      }
-      return commands;
-    });
+Parser<List<Command>> chainLine() =>
+    (command() &
+            (ws().optional() & char(';') & ws().optional() & command()).plus())
+        .map((parts) {
+          final commands = <Command>[parts[0] as Command];
+          final rest = parts[1] as List;
+          for (final item in rest) {
+            commands.add(
+              item[3] as Command,
+            ); // item is [ws?, ';', ws?, command]
+          }
+          return commands;
+        });
 
 // ===== Simple command =====
 
@@ -316,64 +439,49 @@ Parser<List<Command>> simpleCommand() => command().map((cmd) => [cmd]);
 
 // ===== Blocks =====
 
-Parser<List<ConfigElement>> blockBody() => (wsOrNl().optional() & 
-             ((wsOrNl() & (comment() | command())).star()) & 
-             wsOrNl().optional())
-    .map((parts) {
-      final elements = parts[1] as List;
-      return elements.map((e) => e[1]).whereType<ConfigElement>().toList();
-    });
+Parser<List<ConfigElement>> blockBody() =>
+    (wsOrNl().optional() &
+            ((wsOrNl() & (comment() | assignStmt() | command())).star()) &
+            wsOrNl().optional())
+        .map((parts) {
+          final elements = parts[1] as List;
+          return elements.map((e) => e[1]).whereType<ConfigElement>().toList();
+        });
 
 Parser<Block> block() => position()
     .seq(char('{') & blockBody() & char('}'))
     .seq(position())
-    .map((vals) => _annotate(
-        Block('generic', null, ((vals[1] as List)[1] as List<ConfigElement>)), 
-        vals[0] as int, 
-        vals[2] as int));
-
-Parser<Command> blockStmt() => position()
-    .seq(commandHead() & 
-         (ws() & value()).star() & 
-         (ws() & criteria()).optional() & 
-         wsOrNl().optional() & 
-         block())
-    .seq(position())
-    .map((vals) {
-      final parts = vals[1] as List;
-      final head = parts[0] as String;
-      final args = <Value>[];
-      
-      final argList = parts[1] as List;
-      for (final item in argList) {
-        args.add(item[1] as Value); // item is [ws, value]
-      }
-      
-      // Extract criteria if present
-      final crit = parts[2] != null ? (parts[2] as List)[1] as List<Criterion> : null;
-      
-      // parts[3] is the optional whitespace/newline, parts[4] is the block
-      final blockPart = parts[4] as Block;
-      return _annotate(Command(head, args, crit, blockPart), vals[0] as int, vals[2] as int);
-    });
+    .map(
+      (vals) => _annotate(
+        Block('generic', null, ((vals[1] as List)[1] as List<ConfigElement>)),
+        vals[0] as int,
+        vals[2] as int,
+      ),
+    );
 
 // ===== Statements =====
 
-Parser statement() => blockStmt().map((cmd) => [cmd]) | assignStmt().map((assignment) => [assignment]) | chainLine() | simpleCommand();
+Parser statement() =>
+    assignStmt().map((assignment) => [assignment]) |
+    chainLine() |
+    simpleCommand();
 
 // ===== Root config =====
 
 Parser<Config> configParser() => position()
-    .seq(wsOrNl().optional() & 
-         ((comment() | statement()) & wsOrNl().optional()).star() &
-         wsOrNl().optional())
+    .seq(
+      wsOrNl().optional() &
+          ((comment() | statement()) & wsOrNl().optional()).star() &
+          wsOrNl().optional(),
+    )
     .seq(position())
     .map((vals) {
       final parts = vals[1] as List;
       final elements = parts[1] as List;
       final flattenedElements = <ConfigElement>[];
       for (final elementGroup in elements) {
-        final element = elementGroup[0]; // Get the first element (comment | statement)
+        final element =
+            elementGroup[0]; // Get the first element (comment | statement)
         if (element is List) {
           // This is a command chain or simple command - flatten it
           for (final item in element) {
@@ -386,25 +494,29 @@ Parser<Config> configParser() => position()
           flattenedElements.add(element);
         }
       }
-      return _annotate(Config(flattenedElements), vals[0] as int, vals[2] as int);
+      return _annotate(
+        Config(flattenedElements),
+        vals[0] as int,
+        vals[2] as int,
+      );
     });
 
 /// Minimal grammar builder for i3/Sway configuration files.
 class Grammar {
   final SourceFile _sourceFile;
-  
+
   /// Create a new grammar instance with source file for position tracking
-  Grammar(String source, {Uri? url}) 
+  Grammar(String source, {Uri? url})
     : _sourceFile = SourceFile.fromString(source, url: url);
-  
+
   /// Get the main config parser
   Parser<Config> get config => configParser();
-  
+
   /// Parse configuration content into an AST
   Config parse(String content) {
     // Set the global source file for position tracking
     _globalSourceFile = _sourceFile;
-    
+
     // Preprocess the content to handle line continuations and empty lines
     final lineContinuationProcessed = preprocess(content);
     final processedContent = _preprocessContent(lineContinuationProcessed);
@@ -425,15 +537,15 @@ class Grammar {
       );
     }
   }
-  
+
   /// Preprocess content to handle line continuations.
   String preprocess(String content) {
     final lines = content.split('\n');
     final processedLines = <String>[];
-    
+
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
-      
+
       // Check for line continuation (backslash at end of line)
       if (line.endsWith('\\')) {
         // Find the next non-empty line
@@ -441,10 +553,11 @@ class Grammar {
         while (nextLine < lines.length && lines[nextLine].trim().isEmpty) {
           nextLine++;
         }
-        
+
         if (nextLine < lines.length) {
           // Join the lines with a space
-          final continuation = '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}';
+          final continuation =
+              '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}';
           processedLines.add(continuation);
           i = nextLine; // Skip the next line as it's been merged
         } else {
@@ -455,10 +568,10 @@ class Grammar {
         processedLines.add(line);
       }
     }
-    
+
     return processedLines.join('\n');
   }
-  
+
   /// Preprocess content to handle empty lines and whitespace
   String _preprocessContent(String content) {
     // Remove empty lines but keep comment-only lines
