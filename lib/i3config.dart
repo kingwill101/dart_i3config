@@ -5,12 +5,12 @@
 /// and comments while preserving their structure and order.
 ///
 /// ## Version Information
-/// 
+///
 /// This package provides two parser implementations:
-/// 
+///
 /// - **Default (V2)**: Modern PetitParser implementation with enhanced features
 /// - **V1**: Stable, hand-written parser for compatibility
-/// 
+///
 /// To use the legacy V1 implementation:
 /// ```dart
 /// import 'package:i3config/i3config_v1.dart';
@@ -19,7 +19,7 @@
 /// ## Key Features
 ///
 /// - Full support for i3/Sway configuration syntax
-/// - Preserves comments and formatting  
+/// - Preserves comments and formatting
 /// - Handles nested sections and blocks
 /// - Supports line continuations
 /// - Enhanced error reporting
@@ -88,7 +88,7 @@
 /// - `Command`: Generic commands with enhanced type safety
 /// - `Value`: Sealed hierarchy for values (Quoted, VariableRef, BareArg)
 /// - `I3ConfigParser`: Advanced parsing engine with detailed error reporting
-/// 
+///
 /// **V1 (Legacy)**:
 /// - `I3Config`: The original root configuration container
 /// - `ConfigElement`: Base class for all configuration elements
