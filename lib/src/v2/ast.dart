@@ -4,6 +4,7 @@
 /// configuration elements with better type safety and exhaustiveness checking.
 library;
 
+import 'package:i3config/src/v2/value.dart';
 import 'package:source_span/source_span.dart';
 import 'parser.dart';
 
@@ -71,8 +72,8 @@ class Config extends ConfigElement {
 
 /// Assignment operators for i3 config variables
 enum AssignmentOperator {
-  assign('='),      // Set value
-  append('+=');     // Append to existing value
+  assign('='), // Set value
+  append('+='); // Append to existing value
 
   const AssignmentOperator(this.symbol);
   final String symbol;
@@ -80,9 +81,12 @@ enum AssignmentOperator {
   /// Parse operator symbol to enum value
   static AssignmentOperator fromSymbol(String symbol) {
     switch (symbol) {
-      case '=': return AssignmentOperator.assign;
-      case '+=': return AssignmentOperator.append;
-      default: throw ArgumentError('Unknown assignment operator: $symbol');
+      case '=':
+        return AssignmentOperator.assign;
+      case '+=':
+        return AssignmentOperator.append;
+      default:
+        throw ArgumentError('Unknown assignment operator: $symbol');
     }
   }
 
@@ -97,9 +101,9 @@ sealed class Statement extends ConfigElement {
 
 /// Assignment statement: `variable = value` or `variable += value`
 class Assignment extends Statement {
-  final String variable;                // Left-hand side (property name, may be dotted)
-  final AssignmentOperator operator;    // Assignment operator
-  final List<Value> values;             // Right-hand side values
+  final String variable; // Left-hand side (property name, may be dotted)
+  final AssignmentOperator operator; // Assignment operator
+  final List<Value> values; // Right-hand side values
 
   Assignment(this.variable, this.operator, this.values, [super.span]);
 
@@ -127,13 +131,13 @@ class Block extends Statement {
   final String? blockType; // 'mode', 'bar', 'input', 'output', 'seat', etc.
   final Value? identifier;
   final List<ConfigElement> body;
-  
+
   /// Parent block reference (null if at top level).
   /// This is NOT populated by the parser by default - use buildBlockHierarchy() to establish links.
   Block? parentBlock;
 
   Block(this.blockType, this.identifier, this.body, [super.span]);
-  
+
   /// Get all child blocks contained in this block's body.
   /// Returns an empty list if there are no child blocks.
   List<Block> get childBlocks {
@@ -208,86 +212,6 @@ class Comment extends ConfigElement {
       Comment(json['content']);
 }
 
-/// Base class for all values
-sealed class Value {
-  /// Source span for this value (optional for backwards compatibility)
-  SourceSpan? span;
-
-  Value([this.span]);
-
-  /// Set the source span for this value
-  void setSpan(SourceSpan span) => this.span = span;
-
-  /// Convert to JSON representation.
-  Map<String, dynamic> toJson();
-
-  /// Create from JSON representation.
-  static Value fromJson(Map<String, dynamic> json) {
-    switch (json['type']) {
-      case 'Quoted':
-        return Quoted.fromJson(json);
-      case 'VariableRef':
-        return VariableRef.fromJson(json);
-      case 'BareArg':
-        return BareArg.fromJson(json);
-      default:
-        throw Exception('Unknown Value type: ${json['type']}');
-    }
-  }
-}
-
-/// Quoted string value
-class Quoted extends Value {
-  final String value;
-  final String quoteChar; // '"' or "'"
-
-  Quoted(this.value, this.quoteChar, [super.span]);
-
-  @override
-  String toString() => 'Quoted($quoteChar$value$quoteChar)';
-
-  @override
-  Map<String, dynamic> toJson() => {
-    'type': 'Quoted',
-    'value': value,
-    'quoteChar': quoteChar,
-  };
-
-  factory Quoted.fromJson(Map<String, dynamic> json) =>
-      Quoted(json['value'], json['quoteChar']);
-}
-
-/// Variable reference: `$variable`
-class VariableRef extends Value {
-  final String name;
-
-  VariableRef(this.name, [super.span]);
-
-  @override
-  String toString() => 'VariableRef(\$$name)';
-
-  @override
-  Map<String, dynamic> toJson() => {'type': 'VariableRef', 'name': name};
-
-  factory VariableRef.fromJson(Map<String, dynamic> json) =>
-      VariableRef(json['name']);
-}
-
-/// Bare argument (unquoted value)
-class BareArg extends Value {
-  final String value;
-
-  BareArg(this.value, [super.span]);
-
-  @override
-  String toString() => 'BareArg($value)';
-
-  @override
-  Map<String, dynamic> toJson() => {'type': 'BareArg', 'value': value};
-
-  factory BareArg.fromJson(Map<String, dynamic> json) => BareArg(json['value']);
-}
-
 /// Key part for bindings (symbolic or code)
 class KeyPart {
   final String value;
@@ -338,16 +262,16 @@ class ParseError extends Error {
 }
 
 /// Build block hierarchy by establishing parent-child relationships.
-/// 
+///
 /// This function traverses the configuration and sets the `parentBlock` field
 /// on all nested blocks. By default, blocks parsed from configuration do not
 /// have their parent references set for performance reasons.
-/// 
+///
 /// Example:
 /// ```dart
 /// final config = Config.parse(configContent);
 /// buildBlockHierarchy(config);
-/// 
+///
 /// // Now blocks have parent references
 /// final nestedBlock = someBlock;
 /// final parent = nestedBlock.parentBlock; // Not null if nested
@@ -361,6 +285,6 @@ void buildBlockHierarchy(Config config) {
       }
     }
   }
-  
+
   linkBlocks(config.statements, null);
 }
