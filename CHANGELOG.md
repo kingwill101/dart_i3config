@@ -1,4 +1,4 @@
-## 1.1.0 (Legacy)
+## 2.0.0
 
 ### Major Features
 - **Dedicated Assignment AST**: Assignment statements like `order += "value"` are now parsed as first-class `Assignment` objects instead of generic commands
@@ -26,7 +26,7 @@
 
 ### Migration Guide
 
-#### Before (V3.0.x):
+#### Before (1.x):
 ```dart
 // Old confusing way
 final assignments = config.statements
@@ -40,7 +40,7 @@ for (final cmd in assignments) {
 }
 ```
 
-#### After (V2.0.0+):
+#### After (2.0.0+):
 ```dart
 // New clean way
 final assignments = config.statements
@@ -53,7 +53,7 @@ for (final assignment in assignments) {
 }
 ```
 
-## 3.0.0
+## 1.2.0 (Legacy)
 
 ### Major Features
 - **V2 Now Default**: Enhanced PetitParser implementation is now the default export
