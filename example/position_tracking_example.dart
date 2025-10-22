@@ -1,9 +1,9 @@
 #!/usr/bin/env dart
 
 import 'package:i3config/i3config_v2.dart'
-  show Assignment, Block, Command, Comment, Config, VariableRef;
+    show Assignment, Block, Command, Comment, Config, VariableRef;
 
-void main() {
+Future<void> main() async {
   print('=== i3config Parser - Source Position Tracking Example ===\n');
 
   // Sample i3 configuration with various elements
@@ -147,9 +147,9 @@ void findVariableDefinitions(Config config, String source) {
         final line = statement.span!.start.line + 1;
         final column = statement.span!.start.column + 1;
 
-  // VariableRef.name does not include the leading '$'
-  print('  Variable: \$${varName.name}');
-  print('    Value: ${varValue.toString()}');
+        // VariableRef.name does not include the leading '$'
+        print('  Variable: \$${varName.name}');
+        print('    Value: ${varValue.toString()}');
         print('    Location: Line $line, Column $column');
 
         // Show the source line for context

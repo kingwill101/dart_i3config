@@ -1,9 +1,9 @@
 import 'package:i3config/i3config_v2.dart';
 import '../test/v2/test_handlers.dart';
 
-void main() {
+Future<void> main() async {
   print('=== Block-Scoped Handler Example ===\n');
-  
+
   final configContent = '''
 # Global bindings
 bindsym Mod4+Return exec terminal
@@ -23,40 +23,42 @@ mode "resize" {
 
   final config = Config.parse(configContent);
   final processor = ConfigProcessor();
-  
+
   // NOTE: By default, ConfigProcessor has NO handlers registered!
   // You must explicitly register what you need.
-  
+
   // Register global handlers (if you need them)
   processor.registerCommandHandler(BindsymCommandHandler());
-  
+
   // Register block handlers - these internally register their scoped commands
   processor.registerBlockHandler(BarBlockHandler());
   processor.registerBlockHandler(ModeBlockHandler());
-  
+
   print('Processing configuration...\n');
-  processor.process(config);
-  
+  await processor.process(config);
+
   print('\n=== Results ===');
-  
+
   // Global bindings
-  final globalBindings = processor.context.options['bindings'] as Map<String, String>?;
+  final globalBindings =
+      processor.context.options['bindings'] as Map<String, String>?;
   if (globalBindings != null) {
     print('\nGlobal bindings:');
     globalBindings.forEach((key, value) {
       print('  $key -> $value');
     });
   }
-  
+
   // Mode bindings (stored separately by ModeBindsymHandler)
-  final modeBindings = processor.context.options['mode_bindings'] as Map<String, String>?;
+  final modeBindings =
+      processor.context.options['mode_bindings'] as Map<String, String>?;
   if (modeBindings != null) {
     print('\nMode-specific bindings:');
     modeBindings.forEach((key, value) {
       print('  $key -> $value');
     });
   }
-  
+
   print('\n=== Block Handler Architecture ===');
   print('''
 The new architecture allows BlockHandler classes to internally register
@@ -73,6 +75,3 @@ This approach keeps block-specific command logic organized within
 the appropriate block handler class, making the codebase more maintainable.
 ''');
 }
-
-
-

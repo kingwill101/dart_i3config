@@ -1,6 +1,6 @@
 import 'package:i3config/i3config_v1.dart';
 
-void main() {
+Future<void> main() async {
   final configContent = '''
 order += "volume slave"
 general {

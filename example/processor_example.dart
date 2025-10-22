@@ -1,7 +1,7 @@
 import 'package:i3config/i3config_v2.dart';
 import '../test/v2/test_handlers.dart';
 
-void main() {
+Future<void> main() async {
   // Example i3 configuration
   final configContent = '''
 # Set mod key
@@ -31,27 +31,27 @@ mode "resize" {
   // Example 1: Basic processing with state machine
   print('=== Example 1: Basic Processing ===');
   final processor = ConfigProcessor();
-  
+
   // Register command handlers
   processor.registerCommandHandler(SetCommandHandler());
   processor.registerCommandHandler(BindsymCommandHandler());
-  
+
   // Register block handlers
   processor.registerBlockHandler(BarBlockHandler());
   processor.registerBlockHandler(ModeBlockHandler());
-  
+
   // Set error handler
   processor.setErrorHandler(DefaultErrorHandler());
-  
+
   // Process the configuration
-  processor.process(config);
+  await processor.process(config);
   print('');
 
   // Example 2: Using visitor pattern to collect commands
   print('=== Example 2: Command Collection ===');
   final collector = CommandCollectorVisitor();
   final commandsByType = collector.visitConfig(config);
-  
+
   print('Commands by type:');
   commandsByType.forEach((type, commands) {
     print('  $type: ${commands.length} commands');
@@ -62,7 +62,7 @@ mode "resize" {
   print('=== Example 3: Configuration Validation ===');
   final validator = ConfigValidatorVisitor();
   final errors = validator.visitConfig(config);
-  
+
   if (errors.isEmpty) {
     print('Configuration is valid!');
   } else {
@@ -79,9 +79,10 @@ mode "resize" {
   processor.context.variables.forEach((name, value) {
     print('  \$$name = $value');
   });
-  
+
   print('Bindings registered:');
-  final bindings = processor.context.options['bindings'] as Map<String, String>?;
+  final bindings =
+      processor.context.options['bindings'] as Map<String, String>?;
   if (bindings != null) {
     bindings.forEach((key, action) {
       print('  $key -> $action');
@@ -100,19 +101,19 @@ mode "resize" {
 class CustomExecHandler implements CommandHandler {
   @override
   String get commandName => 'exec';
-  
+
   @override
-  void handle(Command command, ProcessingContext context) {
+  void handle(Command command, Context context) {
     if (command.args.isNotEmpty) {
       final program = _expandValue(command.args[0], context);
       print('Would execute: $program');
-      
+
       // Could add logic to actually execute the program
       // or validate that the program exists, etc.
     }
   }
-  
-  String _expandValue(Value value, ProcessingContext context) {
+
+  String _expandValue(Value value, Context context) {
     switch (value) {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
@@ -120,6 +121,6 @@ class CustomExecHandler implements CommandHandler {
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
-      }
+    }
   }
 }

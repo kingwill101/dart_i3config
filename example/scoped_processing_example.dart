@@ -1,9 +1,9 @@
 import 'package:i3config/i3config_v2.dart';
 import '../test/v2/test_handlers.dart';
 
-void main() {
+Future<void> main() async {
   print('=== i3config Chained State System Example ===\n');
-  
+
   // Example configuration with global and block scoped variables
   final configContent = '''
 # Global scope variables
@@ -45,25 +45,25 @@ bindsym \$mod+Shift+q exec \$editor
   // Parse the configuration
   final config = Config.parse(configContent);
   print('Parsed ${config.statements.length} top-level statements\n');
-  
+
   // Create processor with handlers
   final processor = ConfigProcessor();
   processor.registerCommandHandler(SetCommandHandler());
   processor.registerCommandHandler(BindsymCommandHandler());
   processor.registerBlockHandler(BarBlockHandler());
   processor.registerBlockHandler(ModeBlockHandler());
-  
+
   // Process the configuration
   print('=== Processing Configuration ===');
-  processor.process(config);
-  
+  await processor.process(config);
+
   // Display final state
   print('\n=== Final Global Context ===');
   final globalContext = processor.context.globalContext;
   globalContext.variables.forEach((name, value) {
     print('Global \$$name = "$value"');
   });
-  
+
   // Show how variable expansion works
   print('\n=== Variable Expansion Examples ===');
   final examples = [
@@ -73,12 +73,12 @@ bindsym \$mod+Shift+q exec \$editor
     '\$mod+\$terminal',
     'Unknown: \$nonexistent',
   ];
-  
+
   for (final example in examples) {
     final expanded = globalContext.expandVariables(example);
     print('"$example" → "$expanded"');
   }
-  
+
   print('\n=== Summary ===');
   print('✅ Chained state system working correctly');
   print('✅ Variable scoping with shadowing');
