@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:test/test.dart';
 import 'package:i3config/i3config_v2.dart';
 
@@ -332,8 +331,8 @@ class _ScopedRegistrar with DefaultChildProcessing implements BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {
     if (_scopedChild != null) {
       registry.registerScopedBlockHandler(
-        _scopedChild!.blockType,
-        _scopedChild!,
+        _scopedChild.blockType,
+        _scopedChild,
       );
     }
   }
