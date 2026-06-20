@@ -2,11 +2,11 @@
 
 const config = {
   title: 'i3config Documentation',
-  url: 'https://example.com',
-  baseUrl: '/',
+  url: 'https://kingwill101.github.io',
+  baseUrl: '/dart_i3config/',
   favicon: 'img/favicon.svg',
-  organizationName: 'i3config',
-  projectName: 'i3config',
+  organizationName: 'kingwill101',
+  projectName: 'dart_i3config',
   trailingSlash: false,
   onBrokenLinks: 'throw',
   markdown: {
