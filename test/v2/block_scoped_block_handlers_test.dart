@@ -131,7 +131,7 @@ unknown_block {
 
       final processor = ConfigProcessor();
 
-      expect(() async => await processor.process(config), returnsNormally);
+      await expectLater(processor.process(config), completes);
     });
   });
 

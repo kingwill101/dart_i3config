@@ -81,4 +81,5 @@ export 'src/v2/value.dart';
 export 'src/v2/builtin.dart';
 export 'src/v2/mixin.dart';
 export 'src/v2/filesystem.dart';
+// VirtualFileSystem is exported for consumer testing use
 export 'src/v2/test_vfs.dart';

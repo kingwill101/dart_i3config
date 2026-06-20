@@ -330,24 +330,16 @@ class BlockProcessingState extends ProcessorState {
       handler ??=
           processor.context.globalContext.blockHandlers[block.blockType ?? ''];
 
-      final resolvedHandler = handler;
-      if (resolvedHandler != null) {
-        // Set block type before calling handler
-        await _withBlockType(block.blockType, processor, () async {
-          await resolvedHandler.handle(block, processor.context);
-        });
-        return;
-      }
-
-      // Default block processing
-      await _processDefaultBlock(block, processor);
+      // Route through _processDefaultBlock to ensure consistent lifecycle
+      await _processDefaultBlock(block, processor, handlerOverride: handler);
     }
   }
 
   Future<void> _processDefaultBlock(
     Block block,
-    ConfigProcessor processor,
-  ) async {
+    ConfigProcessor processor, {
+    BlockHandler? handlerOverride,
+  }) async {
     // Push new context for block processing (creates child context)
     processor.pushContext();
 
@@ -356,11 +348,11 @@ class BlockProcessingState extends ProcessorState {
     processor.context.currentBlockType = block.blockType;
 
     try {
-      // Get handler and check for custom child processing
-      final handler =
+      // Get handler (use override if provided, otherwise lookup by block type)
+      final handler = handlerOverride ??
           processor.context.globalContext.blockHandlers[block.blockType ?? ''];
 
-        if (handler != null) {
+      if (handler != null) {
         // Call the block handler for setup
         await handler.handle(block, processor.context);
 
@@ -406,17 +398,4 @@ class BlockProcessingState extends ProcessorState {
     }
   }
 
-  Future<void> _withBlockType(
-    String? blockType,
-    ConfigProcessor processor,
-    Future<void> Function() action,
-  ) async {
-    final previousBlockType = processor.context.currentBlockType;
-    processor.context.currentBlockType = blockType;
-    try {
-      await action();
-    } finally {
-      processor.context.currentBlockType = previousBlockType;
-    }
-  }
 }

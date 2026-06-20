@@ -92,9 +92,17 @@ class Context {
       });
     }
 
-    // Expand variables (local scope takes precedence)
-    allVariables.forEach((name, value) {
-      result = result.replaceAll('\$$name', value);
+    if (allVariables.isEmpty) return result;
+
+    // Sort by length descending to avoid prefix collisions ($mod1 before $mod)
+    final names = allVariables.keys.toList()
+      ..sort((a, b) => b.length.compareTo(a.length));
+    final pattern = RegExp(
+      r'\$(' + names.map(RegExp.escape).join('|') + r')(?![a-zA-Z0-9_])',
+    );
+    result = result.replaceAllMapped(pattern, (m) {
+      final key = m.group(1)!;
+      return allVariables[key]!;
     });
 
     return result;

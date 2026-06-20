@@ -127,16 +127,7 @@ class Comment extends ConfigElement {
 ## Value Types
 
 ### Value (Sealed)
-Base class for all values.
-
-```dart
-sealed class Value {
-  Value();
-}
-```
-
-### BareArg
-Bare (unquoted) argument values.
+Base class for all values with source span tracking.
 
 ```dart
 sealed class Value {
@@ -144,7 +135,12 @@ sealed class Value {
 
   Value([this.span]);
 }
+```
 
+### BareArg
+Bare (unquoted) argument values.
+
+```dart
 class BareArg extends Value {
   final String value;
 

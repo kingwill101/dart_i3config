@@ -120,7 +120,7 @@ bar {
       );
 
       // Should not throw - handlers should be invoked
-      expect(() async => await processor.process(config), returnsNormally);
+      await expectLater(processor.process(config), completes);
     });
 
     test('should not use block-scoped handler outside of block', () async {
@@ -141,7 +141,7 @@ bar {
       );
 
       // The global status_command should use default processing (not throw)
-      expect(() async => await processor.process(config), returnsNormally);
+      await expectLater(processor.process(config), completes);
     });
 
     test('should handle multiple blocks with scoped handlers', () async {
@@ -280,7 +280,7 @@ bar {
       // Use old block handler API
       processor.registerBlockHandler(BarBlockHandler());
 
-      expect(() async => await processor.process(config), returnsNormally);
+      await expectLater(processor.process(config), completes);
     });
 
     test('should allow mixing old and new APIs', () async {

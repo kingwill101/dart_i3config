@@ -46,7 +46,7 @@ class I3ConfigParser {
 
     // Handle quoted strings by removing quotes
     if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
-      return rawValue.substring(1, rawValue.length - 1);
+      return rawValue.substring(1, rawValue.length - 1).replaceAll(r'\"', '"');
     }
 
     // Return as is for other cases

@@ -17,10 +17,10 @@ When a block is encountered, the state machine **automatically**:
 3. **Handles nested blocks recursively** using the same pattern
 
 ```dart
-// From visitor.dart - _processCommandWithBlock()
+// From state.dart - _processCommandWithBlock()
 for (final element in block.body) {
   processor.pushState(InitialState());
-  processor.currentState.process(element, processor);  // Automatic!
+  await processor.currentState.process(element, processor);
   processor.popState();
 }
 ```
@@ -87,7 +87,8 @@ bar {
 ### Where Sequential Processing Happens
 
 **For commands with blocks** (`bar { ... }`):
-```dart:385:415:lib/src/v2/visitor.dart
+```dart
+// lib/src/v2/visitor.dart - _processCommandWithBlock()
 void _processCommandWithBlock(Command command, ConfigProcessor processor) {
   // ... setup ...
   
@@ -103,7 +104,8 @@ void _processCommandWithBlock(Command command, ConfigProcessor processor) {
 ```
 
 **For standalone Block elements**:
-```dart:592:613:lib/src/v2/visitor.dart
+```dart
+// lib/src/v2/visitor.dart - _processDefaultBlock()
 void _processDefaultBlock(Block block, ConfigProcessor processor) {
   // ... setup context ...
   
@@ -122,7 +124,8 @@ void _processDefaultBlock(Block block, ConfigProcessor processor) {
 
 When processing `block.body`, if an element is itself a `Command` with a block or a `Block`, the `InitialState.process()` dispatches to the appropriate handler:
 
-```dart:296:333:lib/src/v2/visitor.dart
+```dart
+// lib/src/v2/visitor.dart - InitialState.process()
 case Command command:
   processor.pushState(CommandProcessingState());
   processor.currentState.process(command, processor);
@@ -178,9 +181,4 @@ In those cases, you can override the default by not relying on automatic process
 
 ## Summary
 
-The state machine provides **automatic, sequential, recursive processing** of nested blocks by default. Block handlers focus on setup/teardown, while child processing is handled transparently by the framework. This keeps block handler code clean and simple! 🎯
-
-
-
-
-
+The state machine provides **automatic, sequential, recursive processing** of nested blocks by default. Block handlers focus on setup/teardown, while child processing is handled transparently by the framework. This keeps block handler code clean and simple!

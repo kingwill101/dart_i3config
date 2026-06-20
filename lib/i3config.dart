@@ -58,7 +58,8 @@
 /// ```dart
 /// import 'package:i3config/i3config_v1.dart';
 ///
-/// final config = I3Config.parse(configContent);
+/// final parser = I3ConfigParser(configContent);
+/// final config = parser.parse();
 /// print('Parsed ${config.elements.length} elements');
 /// ```
 ///
@@ -68,7 +69,7 @@
 ///
 /// ```dart
 /// try {
-///   final config = I3Config.parse(malformedContent);
+///   final config = Config.parse(malformedContent);
 /// } catch (e) {
 ///   print('Parse error: $e');
 /// }

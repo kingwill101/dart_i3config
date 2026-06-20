@@ -20,7 +20,10 @@ class BindsymCommandHandler with ValueExpander implements CommandHandler {
   void handle(Command command, Context context) {
     if (command.args.length >= 2) {
       final keyCombo = expandValue(command.args[0], context);
-      final action = expandValue(command.args[1], context);
+      final action = command.args
+          .skip(1)
+          .map((a) => expandValue(a, context))
+          .join(' ');
       final bindings =
           context.options['bindings'] as Map<String, String>? ??
           <String, String>{};
@@ -116,7 +119,10 @@ class ModeBindsymHandler with ValueExpander implements CommandHandler {
   void handle(Command command, Context context) {
     if (command.args.length >= 2) {
       final key = expandValue(command.args[0], context);
-      final action = expandValue(command.args[1], context);
+      final action = command.args
+          .skip(1)
+          .map((a) => expandValue(a, context))
+          .join(' ');
       print('  Mode binding: $key -> $action');
 
       final globalContext = context.globalContext;
