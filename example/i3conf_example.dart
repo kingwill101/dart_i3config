@@ -1,34 +1,54 @@
-import 'package:i3config/i3config.dart';
+import 'package:i3config/i3config_v2.dart';
 
-void main() {
+Future<void> main() async {
   final configContent = '''
-order += "volume slave"
-general {
-    interval = 1
-    colors = true
-    color_good="#FFFFFF"
-    color_degraded="#ffd75f"
-    color_bad="#d75f5f"
-}
+# Set mod key
+set \$mod Mod4
 
-# order += "tztime utc"
-order += "tztime local"
+# Basic key bindings
+bindsym \$mod+Return exec i3-sensible-terminal
+bindsym \$mod+Shift+q kill
 
-tztime local {
-    format = "  %a %Y-%m-%d %H:%M:%S"
-}
+# Variable assignment
+set \$terminal i3-sensible-terminal
+''';
 
-tztime utc {
-    format = " UTC %H:%M"
-    timezone = "Etc/UTC"
-}
+final config = Config.parse(configContent);
+  print('Parsed ${config.statements.length} configuration statements\n');
 
-  ''';
-
-  final parser = I3ConfigParser(configContent);
-  final config = parser.parse();
-
-  for (var element in config.elements) {
-    print(element);
+  // Access specific statements
+  for (final statement in config.statements) {
+    switch (statement) {
+      case Assignment assignment:
+        final values = assignment.values
+            .map((value) => switch (value) {
+                  BareArg bare => bare.value,
+                  Quoted quoted => '"${quoted.value}"',
+                  VariableRef ref => '\$${ref.name}',
+                })
+            .join(' ');
+        print('Assignment → ${assignment.variable} ${assignment.operator} $values');
+        break;
+      case Command command:
+        final args = command.args
+            .map((value) => switch (value) {
+                  BareArg bare => bare.value,
+                  Quoted quoted => '"${quoted.value}"',
+                  VariableRef ref => '\$${ref.name}',
+                })
+            .join(' ');
+        print('Command    → ${command.head} $args');
+        break;
+      case Comment comment:
+        print('Comment    → ${comment.content}');
+        break;
+      default:
+        print('Statement  → ${statement.runtimeType}');
+        break;
+    }
   }
+
+  // Quick access to all assignments using the new API
+  final assignments = config.statements.whereType<Assignment>().toList();
+  print('\nFound ${assignments.length} assignment statement(s).');
 }

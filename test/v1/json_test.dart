@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:test/test.dart';
-import 'package:i3config/src/models.dart';
+import 'package:i3config/src/v1/models.dart';
 
 void main() {
   group('JSON Serialization and Deserialization', () {
@@ -69,8 +69,10 @@ void main() {
       final decodedArrayElement = ArrayElement.fromJson(jsonMap);
 
       expect(decodedArrayElement.name, equals('colors'));
-      expect(decodedArrayElement.values,
-          equals(['#ffffff', '#000000', '#ff0000']));
+      expect(
+        decodedArrayElement.values,
+        equals(['#ffffff', '#000000', '#ff0000']),
+      );
     });
 
     test('Property to/from JSON', () {
@@ -182,13 +184,19 @@ void main() {
       }
 
       // Compare the original parsed config with the decoded config
-      expect(compareConfigs(parsedConfig, decodedConfig), isTrue,
-          reason:
-              'The original parsed config should match the decoded config after JSON conversion');
+      expect(
+        compareConfigs(parsedConfig, decodedConfig),
+        isTrue,
+        reason:
+            'The original parsed config should match the decoded config after JSON conversion',
+      );
 
       // Optionally, you can also compare the string representations
-      expect(parsedConfig.toString(), equals(decodedConfig.toString()),
-          reason: 'The string representations of the configs should match');
+      expect(
+        parsedConfig.toString(),
+        equals(decodedConfig.toString()),
+        reason: 'The string representations of the configs should match',
+      );
     });
   });
 }

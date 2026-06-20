@@ -1,4 +1,4 @@
-import 'package:i3config/src/i3conf_base.dart' as parser;
+import 'i3conf_base.dart' as parser;
 
 class I3Config {
   List<ConfigElement> elements = [];
@@ -10,14 +10,12 @@ class I3Config {
     return 'I3Config(elements: $elements)';
   }
 
-  static parse(String configContent) {
+  static I3Config parse(String configContent) {
     return parser.I3ConfigParser(configContent).parse();
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'elements': elements.map((e) => e.toJson()).toList(),
-    };
+    return {'elements': elements.map((e) => e.toJson()).toList()};
   }
 
   factory I3Config.fromJson(Map<String, dynamic> json) {
@@ -112,11 +110,7 @@ class ArrayElement extends ConfigElement {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'type': 'ArrayElement',
-      'name': name,
-      'values': values,
-    };
+    return {'type': 'ArrayElement', 'name': name, 'values': values};
   }
 
   factory ArrayElement.fromJson(Map<String, dynamic> json) {
@@ -139,11 +133,7 @@ class Property extends ConfigElement {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'type': 'Property',
-      'key': key,
-      'value': value,
-    };
+    return {'type': 'Property', 'key': key, 'value': value};
   }
 
   factory Property.fromJson(Map<String, dynamic> json) {
@@ -163,10 +153,7 @@ class Comment extends ConfigElement {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'type': 'Comment',
-      'content': content,
-    };
+    return {'type': 'Comment', 'content': content};
   }
 
   factory Comment.fromJson(Map<String, dynamic> json) {
@@ -194,10 +181,7 @@ class CommentBlock extends ConfigElement {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'type': 'CommentBlock',
-      'comments': comments,
-    };
+    return {'type': 'CommentBlock', 'comments': comments};
   }
 
   factory CommentBlock.fromJson(Map<String, dynamic> json) {
@@ -219,10 +203,7 @@ class Command extends ConfigElement {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'type': 'Command',
-      'command': command,
-    };
+    return {'type': 'Command', 'command': command};
   }
 
   factory Command.fromJson(Map<String, dynamic> json) {

@@ -1,5 +1,5 @@
-import 'package:i3config/src/models.dart';
-export 'package:i3config/src/models.dart';
+import 'package:i3config/src/v1/models.dart';
+export 'package:i3config/src/v1/models.dart';
 
 dynamic parseValue(String rawValue) {
   // Handle numeric values
@@ -45,14 +45,12 @@ class I3ConfigParser {
     if (rawValue.toLowerCase() == 'false') return false;
 
     // Handle quoted strings by removing quotes
-
-    // Remove quotes if present
-    if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
-        (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
-      rawValue = rawValue.substring(1, rawValue.length - 1);
+    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+      return rawValue.substring(1, rawValue.length - 1).replaceAll(r'\"', '"');
     }
 
-    return rawValue.replaceAll(r'\', r'');
+    // Return as is for other cases
+    return rawValue;
   }
 
   /// Parses the configuration content and returns an [I3Config] object.
@@ -91,8 +89,9 @@ class I3ConfigParser {
 
       if (line.startsWith('#')) {
         // Get the current container (either config or last section)
-        final container =
-            sectionStack.isEmpty ? config.elements : sectionStack.last.children;
+        final container = sectionStack.isEmpty
+            ? config.elements
+            : sectionStack.last.children;
 
         // Try to find the last comment block
         CommentBlock? commentBlock;
@@ -109,13 +108,15 @@ class I3ConfigParser {
       }
 
       // Check for section start
-      final sectionStartMatch =
-          RegExp(r'(\w+)\s*(\S+)?\s*(?<!\\)\{(?![^"]*"\s*$)').firstMatch(line);
+      final sectionStartMatch = RegExp(
+        r'(\w+)\s*(\S+)?\s*(?<!\\)\{(?![^"]*"\s*$)',
+      ).firstMatch(line);
       if (sectionStartMatch != null) {
         final sectionName = sectionStartMatch.group(1)!;
         final sectionKey = sectionStartMatch.group(2);
-        final fullSectionName =
-            sectionKey != null ? '$sectionName $sectionKey' : sectionName;
+        final fullSectionName = sectionKey != null
+            ? '$sectionName $sectionKey'
+            : sectionName;
         final newSection = Section(fullSectionName);
 
         if (sectionStack.isEmpty) {
@@ -135,46 +136,63 @@ class I3ConfigParser {
       }
 
       // Check for array addition
-      final arrayMatch =
-          RegExp(r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''').firstMatch(line);
+      final arrayMatch = RegExp(
+        r'''(\w+)\s*\+=\s*(["'].*?["']|\S+)''',
+      ).firstMatch(line);
       if (arrayMatch != null) {
         final arrayName = arrayMatch.group(1)!;
         String rawValue = arrayMatch.group(2)!;
+        // Remove quotes if present
+        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+          rawValue = rawValue.substring(1, rawValue.length - 1);
+        }
         final arrayValue = parseValue(rawValue);
 
         if (sectionStack.isEmpty) {
-          final arrayElement = config.elements.lastWhere(
-            (element) => element is ArrayElement && element.name == arrayName,
-            orElse: () {
-              final newArrayElement = ArrayElement(arrayName);
-              config.elements.add(newArrayElement);
-              return newArrayElement;
-            },
-          ) as ArrayElement;
+          final arrayElement =
+              config.elements.lastWhere(
+                    (element) =>
+                        element is ArrayElement && element.name == arrayName,
+                    orElse: () {
+                      final newArrayElement = ArrayElement(arrayName);
+                      config.elements.add(newArrayElement);
+                      return newArrayElement;
+                    },
+                  )
+                  as ArrayElement;
           arrayElement.values.add(arrayValue);
         } else {
           final currentSection = sectionStack.last;
-          final existingArray = currentSection.children.lastWhere(
-            (element) => element is ArrayElement && element.name == arrayName,
-            orElse: () {
-              final newArrayElement = ArrayElement(arrayName);
-              currentSection.children.add(newArrayElement);
-              return newArrayElement;
-            },
-          ) as ArrayElement;
+          final existingArray =
+              currentSection.children.lastWhere(
+                    (element) =>
+                        element is ArrayElement && element.name == arrayName,
+                    orElse: () {
+                      final newArrayElement = ArrayElement(arrayName);
+                      currentSection.children.add(newArrayElement);
+                      return newArrayElement;
+                    },
+                  )
+                  as ArrayElement;
           existingArray.values.add(arrayValue);
         }
         continue;
       }
 
       // Check for property
-      final propertyMatch =
-          RegExp(r'''(\w+)\s*=\s*(["'].*?["']|\S+)''').firstMatch(line);
+      final propertyMatch = RegExp(
+        r'''(\w+)\s*=\s*(["'].*?["']|\S+)''',
+      ).firstMatch(line);
       if (propertyMatch != null) {
         final key = propertyMatch.group(1)!;
         String rawValue = propertyMatch.group(2)!;
-
-        final value = parseValue(rawValue);
+        // Remove quotes if present
+        if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+          rawValue = rawValue.substring(1, rawValue.length - 1);
+        }
+        final value = parseValue(rawValue.replaceAll(r'\', r''));
 
         final property = Property(key, value);
 
@@ -193,14 +211,26 @@ class I3ConfigParser {
 
         if (propertyParts.length == 2) {
           final key = propertyParts[0];
-          final value = parseValue(propertyParts[1]);
+          String rawValue = propertyParts[1];
+          // Remove quotes if present
+          if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+              (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+            rawValue = rawValue.substring(1, rawValue.length - 1);
+          }
+          final value = parseValue(rawValue.replaceAll(r'\', r''));
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);
           continue;
         } else if (propertyParts.length > 2) {
           final key = propertyParts[0];
-          final value = parseValue(propertyParts.sublist(1).join(' '));
+          String rawValue = propertyParts.sublist(1).join(' ');
+          // Remove quotes if present
+          if ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+              (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+            rawValue = rawValue.substring(1, rawValue.length - 1);
+          }
+          final value = parseValue(rawValue.replaceAll(r'\', r''));
           final property = Property(key, value);
           sectionStack.last.properties[key] = value;
           sectionStack.last.children.add(property);

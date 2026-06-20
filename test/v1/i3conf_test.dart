@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:i3config/i3config.dart';
+import 'package:i3config/i3config_v1.dart';
 
 void main() {
   group('I3ConfigParser', () {
@@ -19,16 +19,20 @@ general {
       expect(config.elements.length, 3);
       expect(config.elements[0], isA<CommentBlock>());
       final firstCommentBlock = config.elements[0] as CommentBlock;
-      expect(firstCommentBlock.comments,
-          ['# This is a comment', '# This is another comment']);
+      expect(firstCommentBlock.comments, [
+        '# This is a comment',
+        '# This is another comment',
+      ]);
 
       expect(config.elements[1], isA<Section>());
       final section = config.elements[1] as Section;
       expect(section.children.length, 2);
       expect(section.children[0], isA<CommentBlock>());
       final sectionCommentBlock = section.children[0] as CommentBlock;
-      expect(sectionCommentBlock.comments,
-          ['# Section comment', '# Another section comment']);
+      expect(sectionCommentBlock.comments, [
+        '# Section comment',
+        '# Another section comment',
+      ]);
 
       expect(config.elements[2], isA<CommentBlock>());
       final lastCommentBlock = config.elements[2] as CommentBlock;
@@ -59,8 +63,10 @@ bar {
 
       final section = config.elements[0] as Section;
       expect(section.name, 'bar');
-      expect(section.properties['status_command'],
-          'i3status -c /home/\$USER/.config/i3status/i3status.conf');
+      expect(
+        section.properties['status_command'],
+        'i3status -c /home/\$USER/.config/i3status/i3status.conf',
+      );
     });
 
     test('parses section variable', () {
