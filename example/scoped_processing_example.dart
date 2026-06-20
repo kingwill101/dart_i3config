@@ -1,5 +1,5 @@
 import 'package:i3config/i3config_v2.dart';
-import '../test/v2/test_handlers.dart';
+import 'shared_handlers.dart';
 
 Future<void> main() async {
   print('=== i3config Chained State System Example ===\n');

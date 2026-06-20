@@ -100,14 +100,16 @@ app "firefox" {
 class BindsymHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'bindsym';
-  
+
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
-    final action = command.getArgAsString(1, context);
-    
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';
+
     print('⌨️  Key binding: $key -> $action');
-    
+
     // Store in context
     final bindings = context.getVariable('key_bindings') as Map<String, String>? ?? {};
     bindings[key] = action;
@@ -121,14 +123,16 @@ class AssignHandler extends BaseCommandHandler<void> {
   
   @override
   void handle(Command command, Context context) {
-    final criteria = command.getArgAsString(0, context);
-    final workspace = command.getArgAsString(1, context);
+    final criteriaStr = command.criteria
+        ?.map((c) => '${c.key}=${expandValue(c.value, context)}')
+        .join(', ');
+    final workspace = command.getArgAsString(0, context);
     
-    print('🪟 Window assignment: $criteria -> workspace $workspace');
+    print('🪟 Window assignment: $criteriaStr -> workspace $workspace');
     
     // Store in context
     final assignments = context.getVariable('window_assignments') as List<Map<String, String>>? ?? [];
-    assignments.add({'criteria': criteria, 'workspace': workspace});
+    assignments.add({'criteria': criteriaStr ?? '', 'workspace': workspace});
     context.setVariable('window_assignments', assignments);
   }
 }
@@ -139,14 +143,18 @@ class ForWindowHandler extends BaseCommandHandler<void> {
   
   @override
   void handle(Command command, Context context) {
-    final criteria = command.getArgAsString(0, context);
-    final action = command.getArgAsString(1, context);
+    final criteriaStr = command.criteria
+        ?.map((c) => '${c.key}=${expandValue(c.value, context)}')
+        .join(', ');
+    final action = command.args.isNotEmpty
+        ? command.args.map((v) => expandValue(v, context)).join(' ')
+        : '';
     
-    print('🪟 Window rule: $criteria -> $action');
+    print('🪟 Window rule: $criteriaStr -> $action');
     
     // Store in context
     final rules = context.getVariable('window_rules') as List<Map<String, String>>? ?? [];
-    rules.add({'criteria': criteria, 'action': action});
+    rules.add({'criteria': criteriaStr ?? '', 'action': action});
     context.setVariable('window_rules', rules);
   }
 }
@@ -321,7 +329,9 @@ class ModeBindsymHandler extends BaseCommandHandler<void> {
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
-    final action = command.getArgAsString(1, context);
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';
     
     print('⌨️  Mode binding: $key -> $action');
     

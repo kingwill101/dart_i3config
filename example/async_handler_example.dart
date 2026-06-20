@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:i3config/i3config_v2.dart';
-import '../test/v2/test_handlers.dart';
+import 'shared_handlers.dart';
 
 Future<void> main() async {
   print('=== Async Handler Example ===\n');

@@ -391,8 +391,8 @@ class LayoutBlockHandler
       'properties': {},
     };
 
-    // Store reference in context for scoped handlers to access
-    context.globalContext.options['current_layout'] = layoutName;
+    // Store in current context so it's scoped to this layout block
+    context.setVariable('current_layout', layoutName);
   }
 }
 
@@ -435,9 +435,8 @@ class WidgetBlockHandler
 
     state.widgets[widgetId] = {'id': widgetId, 'properties': {}, 'events': {}};
 
-    // Add widget to current layout if we're inside one
-    final currentLayout =
-        context.globalContext.options['current_layout'] as String?;
+    // Add widget to current layout if inside a layout block
+    final currentLayout = context.getVariable('current_layout') as String?;
     if (currentLayout != null && state.layouts.containsKey(currentLayout)) {
       final widgets = state.layouts[currentLayout]!['widgets'] as List;
       widgets.add(widgetId);
@@ -503,9 +502,11 @@ class ConditionalBlockHandler implements BlockHandler {
       } else if (element is Command && element.head == 'disabled_feature') {
         if (element.args.isNotEmpty) {
           final feature = element.args[0];
-          final featureName = feature is BareArg
-              ? feature.value
-              : (feature as Quoted).value;
+          final featureName = switch (feature) {
+            BareArg a => a.value,
+            Quoted q => q.value,
+            VariableRef v => '\$${v.name}',
+          };
           print('   ❌ Skipping disabled: $featureName');
           // Intentionally NOT processing disabled features
         }

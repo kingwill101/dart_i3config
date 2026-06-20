@@ -1,5 +1,5 @@
 import 'package:i3config/i3config_v2.dart';
-import '../test/v2/test_handlers.dart';
+import 'shared_handlers.dart';
 
 Future<void> main() async {
   // Example i3 configuration
@@ -94,7 +94,7 @@ mode "resize" {
   print('=== Example 5: Custom Command Handler ===');
   final customProcessor = ConfigProcessor();
   customProcessor.registerCommandHandler(CustomExecHandler());
-  customProcessor.process(config);
+  await customProcessor.process(config);
 }
 
 /// Custom handler for 'exec' commands.

@@ -5,11 +5,6 @@ import 'filesystem.dart';
 /// Implements [FileSystem] so it can be injected into
 /// [ConfigProcessor] via the `fileSystem` parameter.
 class VirtualFileSystem implements FileSystem {
-  static final VirtualFileSystem _instance = VirtualFileSystem._internal();
-  factory VirtualFileSystem() => _instance;
-
-  VirtualFileSystem._internal();
-
   final Map<String, String> _files = {};
 
   /// Create a virtual file with given path and content.
