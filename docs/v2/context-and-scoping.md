@@ -249,16 +249,19 @@ include $i3_config
 class IncludeHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'include';
-  
+
   @override
-  void handle(Command command, Context context) {
+  Future<void> handle(Command command, Context context) async {
     final path = command.getArgAsString(0, context);
-    
+
     // $i3_config -> $config_dir/i3/config -> $base_dir/.config/i3/config -> /home/user/.config/i3/config
     print('Including: $path');
   }
 }
 ```
+
+> **Note:** The real `IncludeHandler` uses a pluggable `FileSystem` interface.
+> See the [API Reference](api-reference.md#filesystem-abstraction) for details.
 
 ### Array Variable Expansion
 

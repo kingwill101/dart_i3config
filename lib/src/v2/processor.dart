@@ -2,7 +2,9 @@ import 'package:i3config/src/v2/ast.dart';
 import 'package:i3config/src/v2/builtin.dart';
 import 'package:i3config/src/v2/context.dart' show Context;
 import 'package:i3config/src/v2/handlers.dart';
+import 'package:i3config/src/v2/include_handler.dart';
 import 'package:i3config/src/v2/state.dart' show ProcessorState, InitialState;
+import 'filesystem.dart' show FileSystem, PhysicalFileSystem;
 
 /// Main configuration processor that orchestrates the state machine.
 class ConfigProcessor implements BlockHandlerRegistry {
@@ -13,14 +15,23 @@ class ConfigProcessor implements BlockHandlerRegistry {
   /// Track which block type we're currently registering commands for.
   String? _currentBlockTypeRegistration;
 
+  /// The filesystem used by built-in handlers (e.g. [IncludeHandler]).
+  final FileSystem fileSystem;
+
   /// Constructor that automatically registers built-in handlers.
-  ConfigProcessor() {
+  ///
+  /// Provide a [fileSystem] to control how files are read.
+  /// Defaults to [PhysicalFileSystem] for real I/O.
+  /// Pass a [VirtualFileSystem] for testing.
+  ConfigProcessor({FileSystem? fileSystem})
+      : fileSystem = fileSystem ?? const PhysicalFileSystem() {
     _registerBuiltinHandlers();
   }
 
   /// Register built-in command handlers using the same registry system.
   void _registerBuiltinHandlers() {
     registerCommandHandler(SetCommandHandler());
+    registerCommandHandler(IncludeHandler(fileSystem: fileSystem));
   }
 
   /// Current processing state.
@@ -106,6 +117,27 @@ class ConfigProcessor implements BlockHandlerRegistry {
     )[handler.commandName] = handler;
   }
 
+  /// Register a block handler scoped to a specific parent block type.
+  /// The handler will only be invoked for child blocks inside a parent block
+  /// of the specified type.
+  ///
+  /// This is useful for deeply nested configurations where a block's meaning
+  /// depends on its parent context.
+  ///
+  /// Example:
+  /// ```dart
+  /// processor.registerBlockScopedBlockHandler('resource', ActionsBlockHandler());
+  /// ```
+  void registerBlockScopedBlockHandler(
+    String parentBlockType,
+    BlockHandler handler,
+  ) {
+    _context.blockScopedBlockHandlers.putIfAbsent(
+      parentBlockType,
+      () => {},
+    )[handler.blockType] = handler;
+  }
+
   @override
   void registerCommand(String commandName, CommandHandler handler) {
     if (_currentBlockTypeRegistration == null) {
@@ -120,6 +152,20 @@ class ConfigProcessor implements BlockHandlerRegistry {
     )[commandName] = handler;
   }
 
+  @override
+  void registerScopedBlockHandler(String blockType, BlockHandler handler) {
+    if (_currentBlockTypeRegistration == null) {
+      throw StateError(
+        'registerScopedBlockHandler can only be called from within BlockHandler.registerScopedCommands',
+      );
+    }
+
+    _context.blockScopedBlockHandlers.putIfAbsent(
+      _currentBlockTypeRegistration!,
+      () => {},
+    )[blockType] = handler;
+  }
+
   /// Get all block-scoped handlers registered for a specific block type.
   /// Returns an empty map if no handlers are registered for the block type.
   Map<String, CommandHandler> getBlockScopedHandlers(String blockType) {
@@ -129,6 +175,13 @@ class ConfigProcessor implements BlockHandlerRegistry {
   /// Set the error handler.
   void setErrorHandler(ErrorHandler handler) {
     _context.errorHandler = handler;
+  }
+
+  /// Process a configuration string directly.
+  /// Convenience method for parsing and processing in one step.
+  Future<void> processString(String content) async {
+    final config = Config.parse(content);
+    await process(config);
   }
 }
 

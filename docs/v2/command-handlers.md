@@ -433,10 +433,35 @@ final processor = ConfigProcessor();
 processor.registerCommandHandler(BindsymHandler());
 processor.registerCommandHandler(AssignHandler());
 processor.registerCommandHandler(ForWindowHandler());
-processor.registerCommandHandler(IncludeHandler());
 
 await processor.process(config);
 ```
+
+> **Note:** `IncludeHandler` is registered automatically by `ConfigProcessor`.
+> You do not need to register it manually.
+
+### Filesystem Injection for Includes
+
+The built-in `IncludeHandler` reads files through a [FileSystem](../api-reference.md#filesystem-abstraction) abstraction. This allows testing includes without real files:
+
+```dart
+import 'package:i3config/src/v2/test_vfs.dart';
+
+final vfs = VirtualFileSystem();
+vfs.createFile('modules/bar.conf', '''
+status_command i3status
+position top
+''');
+
+final processor = ConfigProcessor(fileSystem: vfs);
+await processor.process(Config.parse('''
+set $mod Mod4
+include "modules/bar.conf"
+'''));
+```
+
+In production, the default `PhysicalFileSystem` handles real I/O automatically.
+Override by passing a custom `FileSystem` to the `ConfigProcessor` constructor.
 
 ### Scoped Command Handlers
 ```dart
@@ -457,7 +482,7 @@ class MyBlockHandler extends BaseBlockHandler {
 void main() async {
   final config = Config.parse('''
 set $mod Mod4
-bindsym $mod+Return exec alacritty
+bindsym $mod+Return exec alacritry
 ''');
   
   final processor = ConfigProcessor();
@@ -467,7 +492,52 @@ bindsym $mod+Return exec alacritty
   
   // Verify command was processed
   final bindings = processor.context.getVariable('key_bindings') as Map<String, String>?;
-  expect(bindings?['Mod4+Return'], equals('exec alacritty'));
+  expect(bindings?['Mod4+Return'], equals('exec alacritry'));
 }
 ```
+
+### Testing Include Handlers with VirtualFileSystem
+
+The [FileSystem abstraction](../api-reference.md#filesystem-abstraction) lets you
+test `include` directives without touching the real filesystem:
+
+```dart
+import 'package:i3config/src/v2/test_vfs.dart';
+import 'package:i3config/i3config_v2.dart' show ConfigProcessor;
+
+void main() {
+  final vfs = VirtualFileSystem();
+  
+  setUp(() {
+    vfs.createFile('modules/global.conf', '''
+set \$mod Mod4
+set \$terminal alacritty
+''');
+    vfs.createFile('modules/nested.conf', '''
+include "modules/global.conf"
+set \$nested_var nested_value
+''');
+  });
+
+  tearDown(() => vfs.clear());
+
+  test('include merges variables', () async {
+    final processor = ConfigProcessor(fileSystem: vfs);
+    await processor.processString('include "modules/global.conf"');
+    expect(processor.context.getVariable('mod'), 'Mod4');
+  });
+
+  test('nested includes work', () async {
+    final processor = ConfigProcessor(fileSystem: vfs);
+    await processor.processString('include "modules/nested.conf"');
+    expect(processor.context.getVariable('nested_var'), 'nested_value');
+  });
+}
+```
+
+Key points:
+- Use `ConfigProcessor(fileSystem: vfs)` to inject the virtual filesystem
+- `createFile(path, content)` adds virtual files before processing
+- `vfs.clear()` resets the filesystem between tests
+- Circular includes, missing files, and nested includes all work with VFS
 

@@ -118,8 +118,18 @@ class CommandProcessingState extends ProcessorState {
     // The block type is the command's head (e.g., 'bar', 'mode', etc.)
     final block = command.block!;
 
-    // Check for registered block handler (from global context)
-    final handler = processor.context.globalContext.blockHandlers[command.head];
+    // Handler resolution order:
+    // 1. Block-scoped block handler (registered by a parent block handler)
+    // 2. Global block handler
+    BlockHandler? handler;
+    final currentBlockType = processor.context.currentBlockType;
+    if (currentBlockType != null) {
+      handler = processor.context.globalContext
+          .blockScopedBlockHandlers[currentBlockType]
+          ?[command.head];
+    }
+    handler ??=
+        processor.context.globalContext.blockHandlers[command.head];
 
     // Process block contents with the command head as block type
     processor.pushContext();
@@ -292,13 +302,24 @@ class BlockProcessingState extends ProcessorState {
     if (element is Block) {
       final block = element;
 
-      // Check for registered block handler
-      final handler =
-          processor.context.blockHandlers[block.blockType ?? 'generic'];
-      if (handler != null) {
+      // Handler resolution order:
+      // 1. Block-scoped block handler (registered by a parent block handler)
+      // 2. Global block handler
+      BlockHandler? handler;
+      final currentBlockType = processor.context.currentBlockType;
+      if (currentBlockType != null) {
+        handler = processor.context.globalContext
+            .blockScopedBlockHandlers[currentBlockType]
+            ?[block.blockType ?? ''];
+      }
+      handler ??=
+          processor.context.globalContext.blockHandlers[block.blockType ?? ''];
+
+      final resolvedHandler = handler;
+      if (resolvedHandler != null) {
         // Set block type before calling handler
         await _withBlockType(block.blockType, processor, () async {
-          await handler.handle(block, processor.context);
+          await resolvedHandler.handle(block, processor.context);
         });
         return;
       }

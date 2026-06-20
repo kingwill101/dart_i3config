@@ -25,6 +25,10 @@ class Context {
   final Map<String, Map<String, CommandHandler>> blockScopedCommandHandlers =
       {};
 
+  /// Registry of block handlers scoped to a parent block type.
+  /// Outer key = parent block type, inner key = child block type.
+  final Map<String, Map<String, BlockHandler>> blockScopedBlockHandlers = {};
+
   /// Processing options and flags.
   final Map<String, dynamic> options = {};
 

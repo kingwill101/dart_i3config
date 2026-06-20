@@ -64,10 +64,26 @@ abstract class BlockHandler {
   FutureOr<void>? processChildren(Block block, Context context);
 }
 
-/// Registry interface for registering commands within a block handler.
+/// Registry interface for registering commands and sub-block handlers
+/// within a block handler's `registerScopedCommands` method.
 abstract class BlockHandlerRegistry {
   /// Register a command handler scoped to the current block type.
   void registerCommand(String commandName, CommandHandler handler);
+
+  /// Register a block handler scoped to the current block type.
+  ///
+  /// The handler will only be invoked for child blocks of the given type
+  /// that appear inside the current block. This enables clean nested-block
+  /// processing without polluting the global handler registry.
+  ///
+  /// Example inside a `ResourceBlockHandler`:
+  /// ```dart
+  /// @override
+  /// void registerScopedCommands(BlockHandlerRegistry registry) {
+  ///   registry.registerScopedBlockHandler('actions', ActionsBlockHandler());
+  /// }
+  /// ```
+  void registerScopedBlockHandler(String blockType, BlockHandler handler);
 }
 
 /// Error handler for processing errors.

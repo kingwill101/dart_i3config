@@ -1,244 +1,275 @@
 # i3config
 
-A robust Dart library for parsing and manipulating i3 window manager configuration files.
+[![Pub Version](https://img.shields.io/pub/v/i3config)](https://pub.dev/packages/i3config)
+[![Pub Points](https://img.shields.io/pub/points/i3config)](https://pub.dev/packages/i3config/score)
+[![Pub Popularity](https://img.shields.io/pub/popularity/i3config)](https://pub.dev/packages/i3config/score)
+[![Dart SDK](https://img.shields.io/badge/dart-%3E%3D3.9-blue)](https://dart.dev)
+[![License](https://img.shields.io/github/license/kingwill101/dart_i3config)](LICENSE)
+[![GitHub](https://img.shields.io/badge/repo-github-blue)](https://github.com/kingwill101/dart_i3config)
+
+A Dart library for parsing and processing i3/Sway configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, and a virtual filesystem for testing.
 
 ## Features
 
-- Full support for i3 configuration syntax (including nested blocks and command chains)
-- Preserves comments and formatting
-- Handles nested sections
-- Type inference for values (numbers, booleans, strings)
+### Core
+- **State machine processor** – `ConfigProcessor` routes AST nodes through states and handlers
+- **Pluggable handlers** – register custom `CommandHandler` and `BlockHandler` implementations
+- **Block-scoped commands** – commands that only apply inside a specific block type
+- **File imports** – `include` with variable expansion, nesting, and circular detection
+- **Pluggable filesystem** – `PhysicalFileSystem` for real I/O, `VirtualFileSystem` for tests
+- **Variable scoping** – block-level context with parent inheritance
+- **Async handlers** – handlers can be sync or async; the processor awaits them
+
+### AST
+- Type-safe sealed nodes: `Assignment`, `Block`, `Command`, `Comment`
+- Source position tracking with contextual parse errors
 - Built-in JSON serialization
-- Preserves order of configuration elements
-- Comprehensive error handling with contextual suggestions
-- Dedicated AST nodes for assignments (`Assignment`) and criteria (`Criterion`)
-- Line continuation support (`\`) with source-span tracking
 
-## What's New in 2.0.0
+## Quick Start
 
-- **Assignment-first AST** – variable assignments are represented by the new `Assignment` statement
-- **Richer grammar coverage** – nested block parsing, complex criteria, chained commands, and escape sequences now share a single command pipeline
-- **Actionable errors** – `Parser.parseWithDetails` returns suggestions for common syntax issues
-- **Extended documentation** – refreshed migration guide, API reference, and end-to-end examples for V2
+```dart
+import 'package:i3config/i3config.dart';
 
-## Documentation
+Future<void> main() async {
+  final processor = ConfigProcessor();
 
-📚 **[Complete Documentation](docs/README.md)** - Comprehensive guides for both V1 and V2
+  await processor.processString('''
+set \$mod Mod4
+bindsym \$mod+Return exec i3-sensible-terminal
+''');
 
-- **[V1 Documentation](docs/v1/)** - Simple AST-based parser
-- **[V2 Documentation](docs/v2/)** - State machine architecture  
-- **[V1 vs V2 Comparison](docs/comparison.md)** - Side-by-side examples
-- **[Migration Guide](docs/v2/migration.md)** - Upgrade from V1 to V2
+  print(processor.context.getVariable('mod')); // Mod4
+}
+```
 
-## Parser Versions
+`Config.parse` builds the AST. `ConfigProcessor.process` / `processString` run
+the state machine and execute registered handlers.
 
-This library provides two parser implementations:
+## How It Works
 
-### V2 (Default) - Enhanced PetitParser Implementation
-- **Import**: `package:i3config/i3config.dart` (default)
-- **Recommended for**: All new projects and production use
-- **Features**: Source position tracking, enhanced error reporting, type-safe AST
-- **Status**: Default implementation, actively developed
+```
+Config text → Parser → AST → State Machine → Handlers → Context
+```
 
-### V1 (Legacy) - Hand-Written Parser
-- **Import**: `package:i3config/i3config_v1.dart`
-- **Recommended for**: Legacy compatibility only
-- **Features**: Basic parsing, simple API
-- **Status**: Stable, maintained for compatibility
+1. **Parse** – `Config.parse(text)` produces an AST of statements
+2. **Process** – `processor.process(config)` routes each element through the state machine
+3. **Handle** – registered handlers execute per command/block type
+4. **Context** – variables, options, and errors accumulate in the scoped context
 
-V2 is the recommended choice for all new projects with its enhanced features and modern architecture.
+## Built-in Handlers
+
+`ConfigProcessor` auto-registers these handlers:
+
+| Command | Handler | Effect |
+|---------|---------|--------|
+| `set $var value` | `SetCommandHandler` | Stores a variable in the current context |
+| `include "path"` | `IncludeHandler` | Reads, parses, and processes another config file |
+
+Unhandled commands are passed through for default property processing.
+
+## Custom Command Handlers
+
+```dart
+class BindsymHandler extends BaseCommandHandler<void> {
+  @override
+  String get commandName => 'bindsym';
+
+  @override
+  void handle(Command command, Context context) {
+    final key = command.getArgAsString(0, context);
+    final action = command.getArgAsString(1, context);
+    context.setVariable('binding_$key', action);
+  }
+}
+
+Future<void> main() async {
+  final processor = ConfigProcessor()
+    ..registerCommandHandler(BindsymHandler());
+
+  await processor.processString('bindsym \$mod+Return exec alacritty');
+}
+```
+
+### Handler Resolution
+
+1. Block-scoped command handlers (when inside a matching block)
+2. Global command handlers
+3. Default command processing
+
+## Block-Scoped Handlers
+
+Block handlers register commands that only work inside a specific block.
+They also create child contexts – variables set inside the block are local
+but parent variables remain readable.
+
+```dart
+class BarBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'bar';
+
+  @override
+  void handle(Block block, Context context) {
+    print('Bar: ${getBlockIdentifier(block, context)}');
+  }
+
+  @override
+  void registerScopedCommands(BlockHandlerRegistry registry) {
+    registry.registerCommand('status_command', StatusHandler());
+    registry.registerCommand('position', PositionHandler());
+  }
+}
+
+class StatusHandler extends BaseCommandHandler<void> {
+  @override
+  String get commandName => 'status_command';
+
+  @override
+  void handle(Command command, Context context) {
+    context.setVariable('bar_status', command.getArgAsString(0, context));
+  }
+}
+
+class PositionHandler extends BaseCommandHandler<void> {
+  @override
+  String get commandName => 'position';
+
+  @override
+  void handle(Command command, Context context) {
+    context.setVariable('bar_position', command.getArgAsString(0, context));
+  }
+}
+
+Future<void> main() async {
+  final processor = ConfigProcessor()
+    ..registerBlockHandler(BarBlockHandler());
+
+  await processor.processString('''
+bar "top" {
+    status_command i3status
+    position top
+}
+''');
+}
+```
+
+Inside a `bar` block, `status_command` and `position` resolve through
+bar-scoped handlers. Outside, those handlers are inactive.
+
+## File Imports
+
+The built-in `IncludeHandler` reads and processes external config files
+during state machine execution.
+
+```dart
+await processor.processString('''
+set \$config_dir ~/.config/i3
+include "\$config_dir/modules/bar.conf"
+include "\$config_dir/modules/colors.conf"
+''');
+```
+
+Supports:
+- Relative and absolute paths
+- Variable expansion (`$var` / `${var}`)
+- `~` home-directory expansion
+- Nested includes
+- Circular include detection
+
+### Pluggable Filesystem
+
+The `IncludeHandler` reads files through a `FileSystem` interface rather than
+`dart:io` directly, so you can swap implementations:
+
+| Implementation | When to Use |
+|----------------|-------------|
+| `PhysicalFileSystem` | Production (default) |
+| `VirtualFileSystem` | Tests (in-memory) |
+
+```dart
+import 'package:i3config/i3config.dart';
+import 'package:i3config/src/v2/test_vfs.dart';
+
+void main() async {
+  final vfs = VirtualFileSystem();
+  vfs.createFile('colors.conf', 'set \$bg "#2e3440"');
+
+  final processor = ConfigProcessor(fileSystem: vfs);
+  await processor.processString('include "colors.conf"');
+
+  print(processor.context.getVariable('bg')); // #2e3440
+}
+```
+
+The `VirtualFileSystem` lives in `src/v2/test_vfs.dart` and is available
+in published releases for your own tests.
+
+## Assignments and Arrays
+
+V2 represents `=` and `+=` as `Assignment` nodes. Direct assignment produces a
+scalar; append assignment builds an array.
+
+```dart
+await processor.processString('''
+order = "wireless wlan0"
+order += "battery 0"
+order += "clock"
+''');
+
+print(processor.context.getVariable('order'));
+// [wireless wlan0, battery 0, clock]
+```
+
+Use `Config.parse` directly to inspect the AST without processing:
+
+```dart
+final config = Config.parse('order += "wireless"');
+for (final a in config.statements.whereType<Assignment>()) {
+  print('${a.variable} ${a.operator} ${a.values}');
+}
+```
+
+## Error Handling
+
+Parse errors throw from `Config.parse`. Processing errors flow through the
+error handler.
+
+```dart
+class Logger implements ErrorHandler {
+  @override
+  void handleError(dynamic error, Context context) {
+    print('Error: $error');
+  }
+}
+
+final processor = ConfigProcessor()..setErrorHandler(Logger());
+await processor.processString('include "missing.conf"');
+```
 
 ## Installation
-
-Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   i3config: ^2.0.0
 ```
 
-Or use the development version:
-
-```yaml
-dependencies:
-  i3config:
-    git:
-      url: https://github.com/kingwill101/dart_i3config.git
-```
-
-Then run:
-
 ```bash
 dart pub get
 ```
 
-## Basic Usage
+## Documentation
 
-```dart
-import 'package:i3config/i3config.dart';
+- **[V2 Guide](docs/v2/)** – state machine architecture, handlers, scoping, filesystem
+- **[Migration Guide](docs/v2/migration.md)** – upgrading from V1 to V2
+- **[Examples](example/)** – runnable Dart example files
 
-void main() {
-  final config = Config.parse('''
-  # Set mod key  
-  set \$mod Mod4
-  
-  # Start terminal
-  bindsym \$mod+Return exec i3-sensible-terminal
-  ''');
+## V1 (Legacy)
 
-  print('Parsed ${config.statements.length} statements');
-
-  // Access statements with source position information
-  for (final statement in config.statements) {
-    print('Statement type: ${statement.runtimeType}');
-    
-    if (statement.span != null) {
-      final span = statement.span!;
-      print('  Location: line ${span.start.line + 1}, column ${span.start.column + 1}');
-      print('  Source: "${span.text.trim()}"');
-    }
-  }
-}
-```
-
-## Working with Sections
-
-Handle nested sections and properties:
-
-```dart
-import 'package:i3config/i3config.dart';
-
-final config = Config.parse('''
-bar {
-    status_command i3status
-    position top
-    colors {
-        background #000000
-        statusline #ffffff
-    }
-}
-''');
-
-// Find commands with blocks (sections)
-final barCommand = config.statements.whereType<Command>()
-    .firstWhere((cmd) => cmd.head == 'bar' && cmd.block != null);
-
-print('Section command: ${barCommand.head}');
-
-// Access commands within the block
-if (barCommand.block != null) {
-  for (final element in barCommand.block!.body) {
-    if (element is Command) {
-      print('Command: ${element.head} ${element.args.join(' ')}');
-      if (element.span != null) {
-        print('  At line ${element.span!.start.line + 1}');
-      }
-      // Check for nested blocks
-      if (element.block != null) {
-        print('  Has nested block with ${element.block!.body.length} elements');
-      }
-    }
-  }
-}
-```
-
-## Type Support
-
-Values are represented as Value objects with their original text:
-
-```dart
-import 'package:i3config/i3config.dart';
-
-final config = Config.parse('''
-general {
-    interval = 1          # parsed as BareArg
-    colors = true        # parsed as BareArg  
-    format = "%H:%M:%S"  # parsed as Quoted
-}
-''');
-
-// Find the general command with a block
-final generalCommand = config.statements.whereType<Command>()
-    .firstWhere((cmd) => cmd.head == 'general' && cmd.block != null);
-
-// Access properties within the block
-if (generalCommand.block != null) {
-  for (final element in generalCommand.block!.body) {
-    if (element is Command && element.args.length >= 2) {
-      final key = element.head;         // property name
-      final operator = element.args[0]; // = or +=
-      final value = element.args[1];    // the value
-      print('${key}: ${value} (${value.runtimeType})');
-      // Shows: BareArg, Quoted, or VariableRef types
-    }
-  }
-}
-```
-
-## Assignment Handling
-
-Support for i3's assignment syntax with dedicated Assignment objects:
-
-```dart
-import 'package:i3config/i3config.dart';
-
-final config = Config.parse('''
-# Status bar modules
-order += "wireless wlan0"
-order += "battery 0" 
-order += "clock"
-''');
-
-// Find assignment statements (now proper Assignment objects)
-final orderAssignments = config.statements
-    .whereType<Assignment>()
-    .where((assignment) => assignment.variable == 'order');
-
-print('Assignment values:');
-for (final assignment in orderAssignments) {
-  print('  ${assignment.variable} ${assignment.operator} ${assignment.values[0]}');
-  if (assignment.span != null) {
-    print('    (line ${assignment.span!.start.line + 1})');
-  }
-}
-
-// Support for dotted identifiers
-final dottedConfig = Config.parse('bar.colors.focused = "#ffffff"');
-final dottedAssignment = dottedConfig.statements.first as Assignment;
-print('Dotted assignment: ${dottedAssignment.variable} = ${dottedAssignment.values[0]}');
-```
-
-## Error Handling
-
-The V2 parser provides enhanced error reporting with source positions:
-
-```dart
-import 'package:i3config/i3config.dart';
-
-try {
-  final config = Config.parse(malformedContent);
-  print('Successfully parsed ${config.statements.length} statements');
-} catch (e) {
-  print('Parse error: $e');
-  // V2 provides detailed error messages with line/column information
-}
-
-// For legacy compatibility, use V1:
-// import 'package:i3config/i3config_v1.dart';
-// final config = I3Config.parse(content);
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to:
-
-1. File bug reports and feature requests in [Issues](issues)
-2. Submit [Pull Requests](pulls) with improvements
-3. Improve documentation
+V1 is available at `package:i3config/i3config_v1.dart` for legacy
+compatibility. All new projects should use V2.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT – see [LICENSE](LICENSE).
 
 ## Additional Resources
 

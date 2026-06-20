@@ -7,7 +7,7 @@
 /// ## Usage
 ///
 /// ```dart
-/// import 'package:i3config/i3config_v1.dart';
+/// import 'package:i3config/i3config_v2.dart';
 ///
 /// final parser = I3Config();
 /// final result = parser.parseConfig(configContent);

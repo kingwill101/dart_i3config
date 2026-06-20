@@ -1,3 +1,21 @@
+## 2.1.0
+
+### Features
+- **Pluggable Filesystem** – New `FileSystem` abstract class lets the `IncludeHandler` read files from real I/O (`PhysicalFileSystem`) or an in-memory store (`VirtualFileSystem` for tests)
+- **ConfigProcessor.fileSystem** – Constructor accepts an optional `FileSystem` parameter (defaults to `PhysicalFileSystem`)
+- **VirtualFileSystem implements FileSystem** – The test VFS now implements the `FileSystem` interface, making it injectable into `ConfigProcessor`
+- **File imports example** – New `example/file_imports_example.dart` demonstrating includes with the virtual filesystem
+
+### Refactors
+- `IncludeHandler` no longer imports `dart:io` or `test_vfs.dart` directly; it reads files through the injected `FileSystem`
+- Removed unused `st` stack trace variable in `IncludeHandler`
+
+### Documentation
+- Added "Pluggable Filesystem" subsection to `docs/v2/README.md` with injection examples
+- Added `FileSystem`, `PhysicalFileSystem`, `VirtualFileSystem` and `IncludeHandler` to `docs/v2/api-reference.md`
+- Added VFS test patterns to `docs/v2/command-handlers.md`
+- Overhauled repo `README.md` with badges, cleaner structure, and filesystem coverage
+
 ## 2.0.0
 
 ### Major Features
@@ -14,7 +32,7 @@
 
 ### New API
 - `Assignment` class: Dedicated AST node for assignment statements
-- `Assignment.variable`: Left-hand side variable name (supports dotted identifiers)  
+- `Assignment.variable`: Left-hand side variable name (supports dotted identifiers)
 - `Assignment.operator`: Assignment operator ('=' or '+=')
 - `Assignment.values`: List of right-hand side values
 - Full JSON serialization support for Assignment objects
@@ -28,11 +46,10 @@
 
 #### Before (1.x):
 ```dart
-// Old confusing way
 final assignments = config.statements
     .whereType<Command>()
     .where((cmd) => cmd.head == 'assign');
-    
+
 for (final cmd in assignments) {
   final variable = (cmd.args[0] as BareArg).value;
   final operator = (cmd.args[1] as BareArg).value;
@@ -42,10 +59,9 @@ for (final cmd in assignments) {
 
 #### After (2.0.0+):
 ```dart
-// New clean way
 final assignments = config.statements
     .whereType<Assignment>();
-    
+
 for (final assignment in assignments) {
   final variable = assignment.variable;
   final operator = assignment.operator;
@@ -53,7 +69,25 @@ for (final assignment in assignments) {
 }
 ```
 
-## 1.2.0 (Legacy)
+## 2.0.0 (Initial 2.0 Release)
+
+### Breaking Changes
+- Values are now automatically parsed into appropriate types (int, bool, double, string)
+- Comments are now preserved and structured into CommentBlocks
+- Fixed array handling in sections to properly group values under the same ArrayElement
+- Changed Property value type from String to dynamic to support typed values
+
+### Features
+- Added type inference for configuration values
+- Added structured comment preservation
+- Improved array handling in sections
+- Added JSON serialization support
+
+### Fixes
+- Fixed parsing double quoted strings in sections when not using the assign operator
+- Added topics metadata to package
+
+## 1.2.0
 
 ### Major Features
 - **V2 Now Default**: Enhanced PetitParser implementation is now the default export
@@ -84,31 +118,6 @@ for (final assignment in assignments) {
 - Added processor examples showing advanced V2 capabilities
 - Enhanced API documentation for both parser versions
 
-### Usage Examples
-
-#### V2 (Default) Usage
-```dart
-import 'package:i3config/i3config.dart'; // V2 by default
-final config = Config.parse(configContent);
-for (final stmt in config.statements) {
-  if (stmt.span != null) {
-    print('${stmt.runtimeType} at line ${stmt.span!.start.line + 1}');
-  }
-}
-```
-
-#### V1 (Legacy) Usage  
-```dart
-import 'package:i3config/i3config_v1.dart';
-final config = I3Config.parse(configContent);
-print('Elements: ${config.elements.length}');
-```
-
-### Migration Path
-- **Existing Projects**: No changes needed, continue using V1
-- **New Projects**: Consider V2 for enhanced features like position tracking  
-- **Gradual Migration**: Import V2 explicitly when ready for advanced features
-
 ### Technical Improvements
 - **Restructured Architecture**: Clean separation between V1 and V2 implementations
 - **Enhanced Testing**: Comprehensive test coverage for both parser versions
@@ -124,32 +133,15 @@ print('Elements: ${config.elements.length}');
 - Default import now explicitly uses V1 for maximum backward compatibility
 - V2 has different API surface with enhanced type safety (sealed classes)
 
-## 2.0.1
-
-### Features
-- fix parsing double quoted strings in sections when not using the assign operator
-- Added topics metadata to package
-
-## 2.0.0
-
-### Breaking Changes
-- Values are now automatically parsed into appropriate types (int, bool, double, string)
-- Comments are now preserved and structured into CommentBlocks
-- Fixed array handling in sections to properly group values under the same ArrayElement
-- Changed Property value type from String to dynamic to support typed values
-
-### Features
-- Added type inference for configuration values
-- Added structured comment preservation
-- Improved array handling in sections
-- Added JSON serialization support
 ## 1.1.1
+
 - support properties with escaped curlies
 
 ## 1.0.1
 
 - support section variables with longer names containing spaces
 - add helpers for getting module name and types
+
 ## 1.0.0
 
 - Initial version.

@@ -39,6 +39,7 @@ for (final element in config.statements) {
 - **Async Support**: Asynchronous handler processing
 - **Array Handling**: Built-in support for array operations
 - **Context Management**: Hierarchical variable and option scoping
+- **File Imports**: Include and process external config files during processing
 
 ## Architecture Overview
 
@@ -91,6 +92,76 @@ Hierarchical variable and option management:
 - **Block Context**: Scoped variables within blocks
 - **Variable Expansion**: Dynamic resolution with inheritance
 
+### File Imports
+The V2 processor can execute `include` commands while processing a configuration. `Config.parse` still only builds the AST; file imports are resolved when you call `ConfigProcessor.process` or `processString`.
+
+```i3
+include "modules/bar.conf"
+include "$config_dir/colors.conf"
+```
+
+The built-in `IncludeHandler` is registered automatically by `ConfigProcessor`. It reads the included file, parses it as V2 configuration, and processes it in place, so variables and commands from the included file become part of the current processing context.
+
+File imports support:
+- Relative and absolute paths
+- Variable expansion with `$variable` and `${variable}`
+- `~` home-directory expansion
+- Nested includes
+- Circular include detection
+
+#### Filesystem Abstraction
+
+The `IncludeHandler` uses a pluggable `FileSystem` interface instead of
+accessing `dart:io` directly. Two implementations are provided:
+
+- **`PhysicalFileSystem`** (default) — reads real files from disk via `dart:io`
+- **`VirtualFileSystem`** — in-memory store for testing
+
+Inject a filesystem via `ConfigProcessor`:
+
+```dart
+import 'package:i3config/src/v2/test_vfs.dart';
+
+// Testing: use virtual filesystem
+final vfs = VirtualFileSystem();
+vfs.createFile('colors.conf', 'set $bg "#2e3440"');
+
+final processor = ConfigProcessor(fileSystem: vfs);
+await processor.processString('include "colors.conf"');
+
+// Production: defaults to PhysicalFileSystem
+final processor2 = ConfigProcessor();
+await processor2.processString('include "/etc/i3/config"');
+```
+
+This makes it easy to test configurations that use `include` directives
+without creating temporary files on disk.
+
+### Block-Scoped Handlers
+Block handlers can register commands that only apply inside a specific block type. Scoped command handlers take precedence over global handlers while the processor is inside the matching block.
+
+```dart
+class BarBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'bar';
+
+  @override
+  void registerScopedCommands(BlockHandlerRegistry registry) {
+    registry.registerCommand('status_command', StatusCommandHandler());
+    registry.registerCommand('position', PositionCommandHandler());
+  }
+}
+```
+
+```i3
+bar "top" {
+    status_command i3status
+    position top
+}
+```
+
+Blocks also create child contexts. Variables set inside a block are scoped to that block, while parent/global variables remain readable unless shadowed.
+
 ## Examples
 
 ### Basic State Machine Usage
@@ -106,6 +177,66 @@ bar "top" {
 final processor = ConfigProcessor();
 await processor.process(config);
 ```
+
+### Processing Included Files
+```dart
+final config = Config.parse('''
+set \$config_dir ~/.config/i3
+include "\$config_dir/modules/bar.conf"
+include "\$config_dir/modules/colors.conf"
+''');
+
+final processor = ConfigProcessor();
+await processor.process(config);
+```
+
+`include` commands are processed during state-machine execution, not during `Config.parse`. The included files are parsed and processed using the same processor and context.
+
+Files are read through the [FileSystem abstraction](#filesystem-abstraction).
+For tests, inject a virtual filesystem:
+
+```dart
+final vfs = VirtualFileSystem();
+vfs.createFile('modules/bar.conf', 'position top');
+
+final processor = ConfigProcessor(fileSystem: vfs);
+await processor.process(Config.parse('include "modules/bar.conf"'));
+```
+
+### Block-Scoped Handler Example
+```dart
+class BarBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'bar';
+
+  @override
+  void handle(Block block, Context context) {
+    print('Processing bar: ${getBlockIdentifier(block, context)}');
+  }
+
+  @override
+  void registerScopedCommands(BlockHandlerRegistry registry) {
+    registry.registerCommand('status_command', StatusCommandHandler());
+    registry.registerCommand('position', PositionCommandHandler());
+  }
+}
+```
+
+```dart
+final config = Config.parse('''
+bar "top" {
+    status_command i3status
+    position top
+}
+''');
+
+final processor = ConfigProcessor()
+  ..registerBlockHandler(BarBlockHandler());
+
+await processor.process(config);
+```
+
+When the processor enters a `bar` block, `status_command` and `position` are resolved through the bar-scoped handlers instead of the global command registry.
 
 ### Custom Command Handler
 ```dart
@@ -169,8 +300,8 @@ See [Migration Guide](migration.md) for detailed upgrade instructions.
 
 ## Advanced Topics
 
+- [Command Handlers](command-handlers.md) - Processing individual commands, including file imports
 - [Block Handlers](block-handlers.md) - Processing block types and scoped commands
-- [Command Handlers](command-handlers.md) - Processing individual commands
 - [Context and Scoping](context-and-scoping.md) - Variable management and inheritance
 - [Configuration Examples](configuration-examples.md) - Real-world config to handler mapping
 - [Simple AST Iteration](simple-ast-iteration.md) - Using V2 parser without state machine

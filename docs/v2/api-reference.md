@@ -208,23 +208,42 @@ Main processor for configuration processing.
 
 ```dart
 class ConfigProcessor implements BlockHandlerRegistry {
-  final ProcessingContext context;
+  final Context context;
+  final FileSystem fileSystem;
   
-  ConfigProcessor();
+  ConfigProcessor({FileSystem? fileSystem});
   
   // Process configuration
   Future<void> process(Config config);
+  
+  // Convenience: parse and process in one step
+  Future<void> processString(String content);
   
   // Register handlers
   void registerCommandHandler(CommandHandler handler);
   void registerBlockHandler(BlockHandler handler);
   
+  // Block-scoped handler registration
+  void registerBlockScopedCommandHandler(String blockType, CommandHandler handler);
+  void registerBlockScopedBlockHandler(String parentBlockType, BlockHandler handler);
+  
   // State management
   void pushState(ProcessorState state);
   void popState();
   ProcessorState get currentState;
+  
+  // Context management
+  Context get context;
+  void pushContext();
+  void popContext();
+  
+  // Error handling
+  void setErrorHandler(ErrorHandler handler);
 }
 ```
+
+The `fileSystem` parameter controls how included files are read. Defaults to
+`PhysicalFileSystem` (real I/O). Pass a `VirtualFileSystem` for testing.
 
 ### ProcessingContext
 Context for variable and option management.
@@ -345,6 +364,63 @@ abstract class BaseBlockHandler implements BlockHandler {
 }
 ```
 
+## FileSystem Abstraction
+
+Pluggable filesystem for reading included config files. Enables testing without
+real I/O by swapping implementations.
+
+### FileSystem
+
+```dart
+abstract class FileSystem {
+  /// Read the content of [path].
+  /// Returns `null` if the file does not exist.
+  Future<String?> readFile(String path);
+}
+```
+
+### PhysicalFileSystem
+
+Default implementation backed by `dart:io`. Reads files from the real filesystem.
+
+```dart
+class PhysicalFileSystem implements FileSystem {
+  const PhysicalFileSystem();
+  
+  @override
+  Future<String?> readFile(String path);
+}
+```
+
+### VirtualFileSystem
+
+In-memory implementation for testing. Lives in `package:i3config/src/v2/test_vfs.dart`.
+
+```dart
+class VirtualFileSystem implements FileSystem {
+  factory VirtualFileSystem();
+  
+  void createFile(String path, String content);
+  String? read(String path);
+  bool exists(String path);
+  void clear();
+  
+  @override
+  Future<String?> readFile(String path);
+}
+```
+
+Usage in tests:
+```dart
+import 'package:i3config/src/v2/test_vfs.dart';
+
+final vfs = VirtualFileSystem();
+vfs.createFile('modules/bar.conf', 'position top');
+
+final processor = ConfigProcessor(fileSystem: vfs);
+await processor.processString('include "modules/bar.conf"');
+```
+
 ## Built-in Handlers
 
 ### SetCommandHandler
@@ -357,6 +433,24 @@ class SetCommandHandler extends BaseCommandHandler<String> {
   
   @override
   String? handle(Command command, Context context);
+}
+```
+
+### IncludeHandler
+Built-in handler for the `include` command. Registered automatically by
+`ConfigProcessor`.
+
+```dart
+class IncludeHandler extends BaseCommandHandler<void> {
+  final FileSystem fileSystem;
+  
+  IncludeHandler({this.fileSystem = const PhysicalFileSystem()});
+  
+  @override
+  String get commandName => 'include';
+  
+  @override
+  Future<void> handle(Command command, Context context);
 }
 ```
 
