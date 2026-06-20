@@ -72,7 +72,9 @@ class BindsymHandler extends BaseCommandHandler<void> {
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);      // $mod+Return -> Mod4+Return
-    final action = command.getArgAsString(1, context);   // $terminal -> alacritty
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';                                              // exec $terminal -> exec alacritty
     
     print('Binding: $key -> $action');
   }
@@ -224,11 +226,16 @@ class BindsymHandler extends BaseCommandHandler<void> {
   void handle(Command command, Context context) {
     // getArgAsString automatically expands variables
     final key = command.getArgAsString(0, context);      // $mod+Return -> Mod4+Return
-    final action = command.getArgAsString(1, context);   // $terminal -> alacritty
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';                                              // exec $terminal -> exec alacritty
     
     // Manual expansion if needed
-    final rawAction = command.args[1].toString();
-    final expandedAction = context.expandVariables(rawAction);
+    if (command.args.length > 1) {
+      final expandedAction = context.expandVariables(
+        command.args.skip(1).map((v) => v.toString()).join(' '),
+      );
+    }
   }
 }
 ```
@@ -362,7 +369,7 @@ class MyBlockHandler extends BaseBlockHandler {
     
     // Set block-local variables
     context.setVariable('block_id', getBlockIdentifier(block, context));
-    context.setVariable('block_type', block.type);
+    context.setVariable('block_type', block.blockType);
   }
   
   @override
@@ -516,7 +523,7 @@ class MyHandler extends BaseCommandHandler<String> {
 ### Inspecting Context State
 
 ```dart
-void debugContext(ProcessingContext context, String label) {
+void debugContext(Context context, String label) {
   print('=== $label Context ===');
   print('Variables: ${context.variables}');
   print('Options: ${context.options}');

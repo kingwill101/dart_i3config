@@ -326,7 +326,7 @@ Future<void> processChildren(Block block, Context context) async {
     if (child is Command && child.block != null) {
       // Handle nested blocks
       final nestedBlock = child.block!;
-      if (nestedBlock.type == 'colors') {
+      if (nestedBlock.blockType == 'colors') {
         // Process colors sub-block
         await processColorsBlock(nestedBlock, context);
       }

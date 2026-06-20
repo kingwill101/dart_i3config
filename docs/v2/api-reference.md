@@ -245,16 +245,16 @@ class ConfigProcessor implements BlockHandlerRegistry {
 The `fileSystem` parameter controls how included files are read. Defaults to
 `PhysicalFileSystem` (real I/O). Pass a `VirtualFileSystem` for testing.
 
-### ProcessingContext
+### Context
 Context for variable and option management.
 
 ```dart
-class ProcessingContext {
+class Context {
   final Map<String, dynamic> variables;
   final Map<String, String> options;
-  final ProcessingContext? parent;
+  final Context? parent;
   
-  ProcessingContext({this.parent});
+  Context({this.parent});
   
   // Variable operations
   void setVariable(String name, dynamic value);
@@ -265,8 +265,8 @@ class ProcessingContext {
   String expandVariables(String text);
   
   // Context management
-  ProcessingContext createChild();
-  void mergeChild(ProcessingContext child);
+  Context createChild();
+  void mergeChild(Context child);
 }
 ```
 
@@ -394,11 +394,11 @@ class PhysicalFileSystem implements FileSystem {
 
 ### VirtualFileSystem
 
-In-memory implementation for testing. Lives in `package:i3config/src/v2/test_vfs.dart`.
+In-memory implementation for testing. Exported from `package:i3config/i3config_v2.dart`.
 
 ```dart
 class VirtualFileSystem implements FileSystem {
-  factory VirtualFileSystem();
+  VirtualFileSystem();
   
   void createFile(String path, String content);
   String? read(String path);
@@ -412,7 +412,7 @@ class VirtualFileSystem implements FileSystem {
 
 Usage in tests:
 ```dart
-import 'package:i3config/src/v2/test_vfs.dart';
+import 'package:i3config/i3config_v2.dart';
 
 final vfs = VirtualFileSystem();
 vfs.createFile('modules/bar.conf', 'position top');

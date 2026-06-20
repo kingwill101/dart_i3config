@@ -120,8 +120,6 @@ accessing `dart:io` directly. Two implementations are provided:
 Inject a filesystem via `ConfigProcessor`:
 
 ```dart
-import 'package:i3config/src/v2/test_vfs.dart';
-
 // Testing: use virtual filesystem
 final vfs = VirtualFileSystem();
 vfs.createFile('colors.conf', 'set $bg "#2e3440"');

@@ -20,7 +20,9 @@ class BindsymHandler extends BaseCommandHandler<void> {
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
-    final action = command.getArgAsString(1, context);
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';
     
     print('⌨️  Binding: $key -> $action');
     
@@ -193,11 +195,9 @@ class I3BindsymHandler extends BaseCommandHandler<void> {
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
-    final action = command.getArgAsString(1, context);
-    
-    // Expand variables in key combination
-    final expandedKey = context.expandVariables(key);
-    final expandedAction = context.expandVariables(action);
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';
     
     print('⌨️  Key binding: $expandedKey -> $expandedAction');
     
@@ -218,34 +218,20 @@ class AssignHandler extends BaseCommandHandler<void> {
   
   @override
   void handle(Command command, Context context) {
-    final criteria = command.getArgAsString(0, context);
-    final workspace = command.getArgAsString(1, context);
+    final criteriaStr = command.criteria
+        ?.map((c) => '${c.key}=${expandValue(c.value, context)}')
+        .join(', ');
+    final workspace = command.getArgAsString(0, context);
     
-    print('🪟 Window assignment: $criteria -> workspace $workspace');
-    
-    // Parse criteria
-    final parsedCriteria = _parseCriteria(criteria);
+    print('🪟 Window assignment: $criteriaStr -> workspace $workspace');
     
     // Store assignment
     final assignments = context.getVariable('window_assignments') as List<Map<String, dynamic>>? ?? [];
     assignments.add({
-      'criteria': parsedCriteria,
+      'criteria': criteriaStr,
       'workspace': workspace,
     });
     context.setVariable('window_assignments', assignments);
-  }
-  
-  Map<String, String> _parseCriteria(String criteria) {
-    // Parse criteria like [class="Firefox" title=".*"]
-    final result = <String, String>{};
-    final regex = RegExp(r'(\w+)="([^"]*)"');
-    final matches = regex.allMatches(criteria);
-    
-    for (final match in matches) {
-      result[match.group(1)!] = match.group(2)!;
-    }
-    
-    return result;
   }
 }
 ```
@@ -445,8 +431,6 @@ await processor.process(config);
 The built-in `IncludeHandler` reads files through a [FileSystem](../api-reference.md#filesystem-abstraction) abstraction. This allows testing includes without real files:
 
 ```dart
-import 'package:i3config/src/v2/test_vfs.dart';
-
 final vfs = VirtualFileSystem();
 vfs.createFile('modules/bar.conf', '''
 status_command i3status
@@ -502,8 +486,7 @@ The [FileSystem abstraction](../api-reference.md#filesystem-abstraction) lets yo
 test `include` directives without touching the real filesystem:
 
 ```dart
-import 'package:i3config/src/v2/test_vfs.dart';
-import 'package:i3config/i3config_v2.dart' show ConfigProcessor;
+import 'package:i3config/i3config_v2.dart';
 
 void main() {
   final vfs = VirtualFileSystem();

@@ -162,7 +162,9 @@ class BindsymHandler extends BaseCommandHandler<void> {
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
-    final action = command.getArgAsString(1, context);
+    final action = command.args.length > 1
+        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        : '';
     print('Binding: $key -> $action');
   }
 }
