@@ -179,7 +179,7 @@ exec i3-sensible-terminal
       final expanded = blockContext.expandVariables(
         'Block: \$global_var, \$block_var, \$another_global',
       );
-      expect(expanded, 'Block: global_value, block_value, another_value');
+      expect(expanded, 'Block: block_override, block_value, another_value');
 
       // Exit block scope
       processor.popContext();

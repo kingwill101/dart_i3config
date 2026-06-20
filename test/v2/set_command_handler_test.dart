@@ -116,7 +116,7 @@ set \$key_prefix \$mod
       processor.registerCommandHandler(SetCommandHandler());
 
       // Should not throw, just not set anything
-      expect(() async => await processor.process(config), returnsNormally);
+      await expectLater(processor.process(config), completes);
       expect(processor.context.getVariable('incomplete'), isNull);
     });
 

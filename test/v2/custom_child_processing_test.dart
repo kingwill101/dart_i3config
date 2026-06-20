@@ -88,9 +88,10 @@ multi_pass {
       await processor.process(config);
 
       // Should process in two passes
-      expect(phases, contains('pass1:declare'));
-      expect(phases, contains('pass1:declare'));
-      expect(phases, contains('pass2:use'));
+      expect(
+        phases,
+        equals(['pass1:declare', 'pass1:declare', 'pass2:use']),
+      );
     });
 
     test('should provide access to processor for manual processing', () async {

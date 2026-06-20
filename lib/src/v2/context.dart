@@ -74,15 +74,22 @@ class Context {
   String expandVariables(String text) {
     String result = text;
 
-    // Collect all variables from the entire context chain
+    // Collect all variables from the entire context chain.
+    // Parent contexts are added first so that child (local) values
+    // take precedence when they share a key.
     final allVariables = <String, String>{};
     Context? current = this;
+    // Walk to the root first to collect ancestors.
+    final chain = <Context>[];
     while (current != null) {
-      // Convert dynamic values to strings for expansion
-      current.variables.forEach((name, value) {
+      chain.add(current);
+      current = current.parentContext;
+    }
+    // Apply from root to leaf so local scope wins.
+    for (final ctx in chain.reversed) {
+      ctx.variables.forEach((name, value) {
         allVariables[name] = _valueToString(value);
       });
-      current = current.parentContext;
     }
 
     // Expand variables (local scope takes precedence)
