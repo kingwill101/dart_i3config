@@ -69,17 +69,22 @@ class ConfigProcessor implements BlockHandlerRegistry {
   /// Returns a Future that completes when all processing is done.
   /// Handlers can be sync or async - the processor waits for async handlers to complete.
   Future<void> process(Config config) async {
-    _context.currentState = currentState;
+    pushState(InitialState());
+    _context.currentState = InitialState();
     // Store processor reference for manual processing (if needed)
     _context.options['_processor'] = this;
 
-    for (final element in config.statements) {
-      try {
-        await currentState.process(element, this);
-      } catch (e) {
-        _context.errorHandler?.handleError(e, _context);
-        // Continue processing other elements
+    try {
+      for (final element in config.statements) {
+        try {
+          await currentState.process(element, this);
+        } catch (e) {
+          _context.errorHandler?.handleError(e, _context);
+          // Continue processing other elements
+        }
       }
+    } finally {
+      popState();
     }
   }
 
@@ -193,8 +198,11 @@ extension ManualProcessing on ConfigProcessor {
   Future<void> processElements(List<ConfigElement> elements) async {
     for (final element in elements) {
       pushState(InitialState());
-      await currentState.process(element, this);
-      popState();
+      try {
+        await currentState.process(element, this);
+      } finally {
+        popState();
+      }
     }
   }
 }

@@ -27,7 +27,7 @@ bindsym \$mod+Return exec terminal
       final bindings =
           processor.context.options['bindings'] as Map<String, String>?;
       expect(bindings, isNotNull);
-      expect(bindings!['Mod4'], '+Return');
+      expect(bindings!['Mod4+Return'], 'exec');
     });
 
     test('command collector visitor', () async {

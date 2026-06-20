@@ -344,15 +344,13 @@ seat "seat0" {
 
         final command = config.statements.first as Command;
         expect(command.head, 'bindsym');
-        expect(command.args.length, 4);
-        expect(command.args[0], isA<VariableRef>());
-        expect((command.args[0] as VariableRef).name, 'mod');
+        expect(command.args.length, 3);
+        expect(command.args[0], isA<BareArg>());
+        expect((command.args[0] as BareArg).value, '\$mod+Return');
         expect(command.args[1], isA<BareArg>());
-        expect((command.args[1] as BareArg).value, '+Return');
+        expect((command.args[1] as BareArg).value, 'exec');
         expect(command.args[2], isA<BareArg>());
-        expect((command.args[2] as BareArg).value, 'exec');
-        expect(command.args[3], isA<BareArg>());
-        expect((command.args[3] as BareArg).value, 'i3-sensible-terminal');
+        expect((command.args[2] as BareArg).value, 'i3-sensible-terminal');
       });
 
       test('parse bindcode statement', () {
@@ -364,15 +362,13 @@ seat "seat0" {
 
         final command = config.statements.first as Command;
         expect(command.head, 'bindcode');
-        expect(command.args.length, 4);
-        expect(command.args[0], isA<VariableRef>());
-        expect((command.args[0] as VariableRef).name, 'mod');
+        expect(command.args.length, 3);
+        expect(command.args[0], isA<BareArg>());
+        expect((command.args[0] as BareArg).value, '\$mod+36');
         expect(command.args[1], isA<BareArg>());
-        expect((command.args[1] as BareArg).value, '+36');
+        expect((command.args[1] as BareArg).value, 'exec');
         expect(command.args[2], isA<BareArg>());
-        expect((command.args[2] as BareArg).value, 'exec');
-        expect(command.args[3], isA<BareArg>());
-        expect((command.args[3] as BareArg).value, 'i3-sensible-terminal');
+        expect((command.args[2] as BareArg).value, 'i3-sensible-terminal');
       });
 
       test('parse complex key combination', () {
@@ -384,15 +380,13 @@ seat "seat0" {
 
         final command = config.statements.first as Command;
         expect(command.head, 'bindsym');
-        expect(command.args.length, 4);
-        expect(command.args[0], isA<VariableRef>());
-        expect((command.args[0] as VariableRef).name, 'mod');
+        expect(command.args.length, 3);
+        expect(command.args[0], isA<BareArg>());
+        expect((command.args[0] as BareArg).value, '\$mod+Shift+q');
         expect(command.args[1], isA<BareArg>());
-        expect((command.args[1] as BareArg).value, '+Shift+q');
+        expect((command.args[1] as BareArg).value, 'exec');
         expect(command.args[2], isA<BareArg>());
-        expect((command.args[2] as BareArg).value, 'exec');
-        expect(command.args[3], isA<BareArg>());
-        expect((command.args[3] as BareArg).value, 'i3-sensible-terminal');
+        expect((command.args[2] as BareArg).value, 'i3-sensible-terminal');
       });
     });
 
@@ -678,7 +672,7 @@ bar {
         final command2 = config.statements[1] as Command;
         expect(command1.head, 'set');
         expect(command2.head, 'bindsym');
-        expect(command2.args.length, 4);
+        expect(command2.args.length, 3);
       });
     });
 
@@ -841,14 +835,8 @@ mode "resize" {
       test('handle unclosed quotes gracefully', () {
         final configContent = 'set \$msg "unclosed quote';
 
-        // Parser should handle this gracefully by parsing what it can
-        final config = Config.parse(configContent);
-        expect(config.statements.length, 1);
-        expect(config.statements.first, isA<Command>());
-        final cmd = config.statements.first as Command;
-        expect(cmd.head, 'set');
-        expect(cmd.args.length, 1); // Only the variable, unclosed quote ignored
-        expect(cmd.args[0], isA<VariableRef>());
+        // Parser now requires full consumption — unclosed quotes raise ParseError
+        expect(() => Config.parse(configContent), throwsA(isA<ParseError>()));
       });
 
       test('handle unknown commands gracefully', () {

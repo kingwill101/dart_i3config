@@ -43,18 +43,27 @@ class InitialState extends ProcessorState {
         break;
       case Assignment assignment:
         processor.pushState(AssignmentProcessingState());
-        await processor.currentState.process(assignment, processor);
-        processor.popState();
+        try {
+          await processor.currentState.process(assignment, processor);
+        } finally {
+          processor.popState();
+        }
         break;
       case Command command:
         processor.pushState(CommandProcessingState());
-        await processor.currentState.process(command, processor);
-        processor.popState();
+        try {
+          await processor.currentState.process(command, processor);
+        } finally {
+          processor.popState();
+        }
         break;
       case Block block:
         processor.pushState(BlockProcessingState());
-        await processor.currentState.process(block, processor);
-        processor.popState();
+        try {
+          await processor.currentState.process(block, processor);
+        } finally {
+          processor.popState();
+        }
         break;
       case Comment _:
         break;
@@ -156,8 +165,11 @@ class CommandProcessingState extends ProcessorState {
           // Default: automatic sequential processing
           for (final element in block.body) {
             processor.pushState(InitialState());
-            await processor.currentState.process(element, processor);
-            processor.popState();
+            try {
+              await processor.currentState.process(element, processor);
+            } finally {
+              processor.popState();
+            }
           }
         }
 
@@ -169,8 +181,11 @@ class CommandProcessingState extends ProcessorState {
         // No handler: default automatic processing
         for (final element in block.body) {
           processor.pushState(InitialState());
-          await processor.currentState.process(element, processor);
-          processor.popState();
+          try {
+            await processor.currentState.process(element, processor);
+          } finally {
+            processor.popState();
+          }
         }
       }
     } finally {
@@ -345,7 +360,7 @@ class BlockProcessingState extends ProcessorState {
       final handler =
           processor.context.globalContext.blockHandlers[block.blockType ?? ''];
 
-      if (handler != null) {
+        if (handler != null) {
         // Call the block handler for setup
         await handler.handle(block, processor.context);
 
@@ -360,8 +375,11 @@ class BlockProcessingState extends ProcessorState {
           // Default: automatic sequential processing
           for (final element in block.body) {
             processor.pushState(InitialState());
-            await processor.currentState.process(element, processor);
-            processor.popState();
+            try {
+              await processor.currentState.process(element, processor);
+            } finally {
+              processor.popState();
+            }
           }
         }
 
@@ -373,8 +391,11 @@ class BlockProcessingState extends ProcessorState {
         // No handler: default automatic processing
         for (final element in block.body) {
           processor.pushState(InitialState());
-          await processor.currentState.process(element, processor);
-          processor.popState();
+          try {
+            await processor.currentState.process(element, processor);
+          } finally {
+            processor.popState();
+          }
         }
       }
     } finally {

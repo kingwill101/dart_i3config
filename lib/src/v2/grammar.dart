@@ -234,7 +234,8 @@ Parser bareChar() =>
     char('+') |
     char(',') |
     char('@') |
-    char('%'));
+    char('%') |
+    char('#'));
 
 Parser<BareArg> bareArg() => position()
     .seq(bareChar().plus().flatten())
@@ -347,8 +348,11 @@ Parser<Assignment> assignStmt() => position()
 Parser<List<Value>> argPattern() =>
     ((ws() & variableRef() & bareArg()) | (ws() & value())).map((parts) {
       if (parts.length == 3) {
-        // This is [ws, variableRef, bareArg] - combine them
-        return [parts[1] as Value, parts[2] as Value];
+        // Combine variable ref + suffix into a single value
+        // e.g. $mod+Return → one token instead of [$mod, +Return]
+        final varRef = parts[1] as VariableRef;
+        final suffix = parts[2] as BareArg;
+        return [BareArg('\$${varRef.name}${suffix.value}')];
       } else {
         // This is [ws, value]
         return [parts[1] as Value];
@@ -520,7 +524,7 @@ class Grammar {
     // Preprocess the content to handle line continuations and empty lines
     final lineContinuationProcessed = preprocess(content);
     final processedContent = _preprocessContent(lineContinuationProcessed);
-    final result = configParser().parse(processedContent);
+    final result = configParser().end().parse(processedContent);
     if (result is Success<Config>) {
       return result.value;
     } else {

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:test/test.dart';
 import 'package:i3config/i3config_v2.dart';
 

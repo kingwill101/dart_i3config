@@ -25,8 +25,10 @@ class SetCommandHandler extends BaseCommandHandler<String> {
         final varValue = expandValue(value, context);
         context.setVariable(varName, varValue);
 
-        // Optional: Log the variable setting
-        print('Set variable: \$$varName = $varValue');
+        // Log only when verbose mode is enabled
+        if (context.options['verbose'] == true) {
+          print('Set variable: \$$varName = $varValue');
+        }
 
         // Return the value that was set
         return varValue;
