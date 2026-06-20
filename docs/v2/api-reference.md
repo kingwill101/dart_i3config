@@ -308,7 +308,7 @@ abstract class BlockHandlerRegistry {
 
 ## Base Handler Classes
 
-### BaseCommandHandler<T>
+### `BaseCommandHandler<T>`
 Base class for command handlers with built-in functionality.
 
 ```dart

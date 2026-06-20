@@ -9,7 +9,11 @@ const config = {
   projectName: 'i3config',
   trailingSlash: false,
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
   staticDirectories: ['static'],
   presets: [
     [

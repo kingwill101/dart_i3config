@@ -428,7 +428,7 @@ await processor.process(config);
 
 ### Filesystem Injection for Includes
 
-The built-in `IncludeHandler` reads files through a [FileSystem](../api-reference.md#filesystem-abstraction) abstraction. This allows testing includes without real files:
+The built-in `IncludeHandler` reads files through a [FileSystem](api-reference.md#filesystem-abstraction) abstraction. This allows testing includes without real files:
 
 ```dart
 final vfs = VirtualFileSystem();
@@ -482,7 +482,7 @@ bindsym $mod+Return exec alacritry
 
 ### Testing Include Handlers with VirtualFileSystem
 
-The [FileSystem abstraction](../api-reference.md#filesystem-abstraction) lets you
+The [FileSystem abstraction](api-reference.md#filesystem-abstraction) lets you
 test `include` directives without touching the real filesystem:
 
 ```dart
