@@ -1,3 +1,9 @@
+## 2.1.1
+
+### Fixes
+- Fixed V2 parsing for nested blocks containing assignment inline comments with `:` characters, such as `require_root = true  # Default: ...`
+- Added regression coverage for nested `resource`/`actions` style blocks so assignment comments do not break block parsing
+
 ## 2.1.0
 
 ### Features

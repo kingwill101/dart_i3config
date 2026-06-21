@@ -41,8 +41,10 @@ seat seat0 {
 
       final config = Config.parse(configContent);
 
-      final commands =
-          config.statements.whereType<Command>().map((c) => c.head).toList();
+      final commands = config.statements
+          .whereType<Command>()
+          .map((c) => c.head)
+          .toList();
 
       expect(
         commands,
@@ -64,27 +66,27 @@ seat seat0 {
       expect(assignments.length, 2);
       expect(assignments.first.variable, 'workspace');
 
-      final barCommand = config.statements
-          .whereType<Command>()
-          .firstWhere((command) => command.head == 'bar');
+      final barCommand = config.statements.whereType<Command>().firstWhere(
+        (command) => command.head == 'bar',
+      );
       expect(barCommand.block, isNotNull);
       expect(barCommand.block!.body.length, 3);
 
-      final modeCommand = config.statements
-          .whereType<Command>()
-          .firstWhere((command) => command.head == 'mode');
+      final modeCommand = config.statements.whereType<Command>().firstWhere(
+        (command) => command.head == 'mode',
+      );
       expect(modeCommand.block, isNotNull);
       expect(modeCommand.block!.body.single, isA<Command>());
 
-      final inputCommand = config.statements
-          .whereType<Command>()
-          .firstWhere((command) => command.head == 'input');
+      final inputCommand = config.statements.whereType<Command>().firstWhere(
+        (command) => command.head == 'input',
+      );
       expect(inputCommand.block, isNotNull);
       expect(inputCommand.block!.body.single, isA<Command>());
 
-      final outputCommand = config.statements
-          .whereType<Command>()
-          .firstWhere((command) => command.head == 'output');
+      final outputCommand = config.statements.whereType<Command>().firstWhere(
+        (command) => command.head == 'output',
+      );
       expect(outputCommand.block, isNotNull);
       expect(outputCommand.block!.body.single, isA<Command>());
     });
@@ -127,11 +129,18 @@ exec --no-startup-id my-script \\
       final config = Config.parse(content);
       expect(config.statements.length, 1);
       final command = config.statements.first as Command;
-      final args = command.args.whereType<BareArg>().map((a) => a.value).toList();
-      expect(
-        args,
-        ['--no-startup-id', 'my-script', '--option1', 'value1', '--option2', 'value2'],
-      );
+      final args = command.args
+          .whereType<BareArg>()
+          .map((a) => a.value)
+          .toList();
+      expect(args, [
+        '--no-startup-id',
+        'my-script',
+        '--option1',
+        'value1',
+        '--option2',
+        'value2',
+      ]);
     });
 
     test('supports continued assignments with multiple values', () {
@@ -145,7 +154,13 @@ set_from = alpha beta \\
       expect(config.statements.length, 1);
       final assignment = config.statements.first as Assignment;
       final values = assignment.values.whereType<BareArg>().toList();
-      expect(values.map((v) => v.value), ['alpha', 'beta', 'gamma', 'delta', 'epsilon']);
+      expect(values.map((v) => v.value), [
+        'alpha',
+        'beta',
+        'gamma',
+        'delta',
+        'epsilon',
+      ]);
     });
   });
 
@@ -161,10 +176,7 @@ set_from = alpha beta \\
       expect(command.criteria!.length, 2);
       expect(command.criteria![0].key, 'class');
       expect(command.criteria![1].key, 'title');
-      expect(
-        (command.criteria![1].value as Quoted).value,
-        contains('Browser'),
-      );
+      expect((command.criteria![1].value as Quoted).value, contains('Browser'));
     });
 
     test('supports chained commands with trailing whitespace and comments', () {
@@ -179,6 +191,48 @@ set_from = alpha beta \\
   });
 
   group('Nested blocks', () {
+    test('parses nested blocks with assignment inline comments', () {
+      final content = '''
+resource {
+  type "file"
+  source "user_config.yml"
+  destination "/etc/myapp/user_config.yml"
+  require_root = true  # Default: all actions privileged
+
+  actions {
+    copy {
+      # Inherits require_root = true from parent
+    }
+    permissions {
+      mode "644"
+      require_root = false  # Override: this action runs without privileges
+    }
+    validate {
+      # Inherits require_root = true from parent
+    }
+  }
+}
+''';
+
+      final config = Config.parse(content);
+      final resource = config.statements.single as Command;
+
+      expect(resource.head, 'resource');
+      expect(resource.block, isNotNull);
+      final actions =
+          resource.block!.body.firstWhere(
+                (element) => element is Command && element.head == 'actions',
+                orElse: () => throw StateError('actions block not found'),
+              )
+              as Command;
+      expect(actions.block, isNotNull);
+      expect(actions.block!.body.whereType<Command>().map((c) => c.head), [
+        'copy',
+        'permissions',
+        'validate',
+      ]);
+    });
+
     test('parses nested bar colors section', () {
       final content = '''
 bar {
@@ -191,21 +245,21 @@ bar {
 ''';
 
       final config = Config.parse(content);
-      final bar = config.statements
-          .whereType<Command>()
-          .firstWhere((command) => command.head == 'bar');
-      expect(bar.block, isNotNull);
-      final colorsCommand = bar.block!.body.firstWhere(
-        (element) => element is Command && element.head == 'colors',
-        orElse: () => throw StateError('colors block not found'),
-      ) as Command;
-      expect(colorsCommand.block, isNotNull);
-      final nestedCommands =
-          colorsCommand.block!.body.whereType<Command>().map((c) => c.head);
-      expect(
-        nestedCommands,
-        containsAll(['background', 'focused_workspace']),
+      final bar = config.statements.whereType<Command>().firstWhere(
+        (command) => command.head == 'bar',
       );
+      expect(bar.block, isNotNull);
+      final colorsCommand =
+          bar.block!.body.firstWhere(
+                (element) => element is Command && element.head == 'colors',
+                orElse: () => throw StateError('colors block not found'),
+              )
+              as Command;
+      expect(colorsCommand.block, isNotNull);
+      final nestedCommands = colorsCommand.block!.body.whereType<Command>().map(
+        (c) => c.head,
+      );
+      expect(nestedCommands, containsAll(['background', 'focused_workspace']));
     });
   });
 }

@@ -267,11 +267,11 @@ Parser<String> lhs() => dottedIdent();
 Parser<String> assignOp() => (string('+=') | char('=')).flatten();
 
 Parser<List<Value>> rhsList() =>
-    (value() & (ws() & value()).star()).map((parts) {
+    (value() & ((ws() & char('#')).not() & ws() & value()).star()).map((parts) {
       final result = <Value>[parts[0] as Value];
       final rest = parts[1] as List;
       for (final item in rest) {
-        result.add(item[1] as Value);
+        result.add(item[2] as Value);
       }
       return result;
     });
