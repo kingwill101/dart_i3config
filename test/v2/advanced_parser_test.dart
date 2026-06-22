@@ -262,4 +262,74 @@ bar {
       expect(nestedCommands, containsAll(['background', 'focused_workspace']));
     });
   });
+
+  group('Array literal grammar', () {
+    test('parses empty array', () {
+      final config = r'''set $mod []''';
+      final parsed = Config.parse('$config\n');
+      final setCmd = parsed.statements.first as Command;
+      expect(setCmd.args[1], isA<ArrayValue>());
+      expect((setCmd.args[1] as ArrayValue).items, isEmpty);
+    });
+
+    test('parses single-element array', () {
+      final config = r'''set $mod [value]''';
+      final parsed = Config.parse('$config\n');
+      final setCmd = parsed.statements.first as Command;
+      final arr = setCmd.args[1] as ArrayValue;
+      expect(arr.items, hasLength(1));
+      expect(arr.items[0], isA<BareArg>());
+      expect((arr.items[0] as BareArg).value, equals('value'));
+    });
+
+    test('parses multi-element array', () {
+      final config = r'''set $mod [a, b, c]''';
+      final parsed = Config.parse('$config\n');
+      final setCmd = parsed.statements.first as Command;
+      final arr = setCmd.args[1] as ArrayValue;
+      expect(arr.items, hasLength(3));
+      expect(arr.items.map((v) => (v as BareArg).value), equals(['a', 'b', 'c']));
+    });
+
+    test('parses array with whitespace', () {
+      final config = r'''set $mod [  a  ,  b  ,  c  ]''';
+      final parsed = Config.parse('$config\n');
+      final setCmd = parsed.statements.first as Command;
+      final arr = setCmd.args[1] as ArrayValue;
+      expect(arr.items.map((v) => (v as BareArg).value), equals(['a', 'b', 'c']));
+    });
+
+    test('parses array with mixed value types', () {
+      final config = r'''set $mod ["hello", $var, world]''';
+      final parsed = Config.parse('$config\n');
+      final setCmd = parsed.statements.first as Command;
+      final arr = setCmd.args[1] as ArrayValue;
+      expect(arr.items, hasLength(3));
+      expect(arr.items[0], isA<Quoted>());
+      expect(arr.items[1], isA<VariableRef>());
+      expect(arr.items[2], isA<BareArg>());
+    });
+
+    test('parses array as command argument', () {
+      final config = r'''bindsym $mod+a exec [a, b, c]''';
+      final parsed = Config.parse('$config\n');
+      final cmd = parsed.statements.first as Command;
+      expect(cmd.args[2], isA<ArrayValue>());
+    });
+
+    test('parses array as assignment RHS', () {
+      final config = 'myvar = [val1, val2]\n';
+      final parsed = Config.parse(config);
+      final assign = parsed.statements.first as Assignment;
+      expect(assign.values, hasLength(1));
+      expect(assign.values[0], isA<ArrayValue>());
+    });
+
+    test('rejects trailing comma', () {
+      expect(
+        () => Config.parse('set \$mod [a,]\n'),
+        throwsA(isA<ParseError>()),
+      );
+    });
+  });
 }

@@ -1,3 +1,37 @@
+## 2.3.1
+
+### Features
+- **Contextual error messages** — Parse errors now produce specific messages instead of "end of input expected": `missing closing bracket/brace/quote`, `unexpected closing bracket/brace`, `expected a command after ';'`, and `unexpected character 'X'` (`lib/src/v2/grammar.dart`)
+- **`_orError()` helper** — PetitParser 7 compatible custom error messages via `failure()` + `toChoiceParser()`, applied to closing tokens in criteria, blocks, arrays, strings, and assignment operators
+
+### Fixes
+- Removed unused `petitparser` import from `parser.dart`
+
+## 2.3.0
+
+### Features
+- **Inline comments** — Comments on the same line as a command or assignment (`bindsym $mod+Return exec terminal # launch`) are now parsed and stored as `trailingComment` on `Command` and `Assignment` nodes
+- **Inline comment formatting** — `ConfigFormatter` preserves and outputs trailing inline comments (two spaces before `#`)
+- **SourceSpan error reporting** — Parse errors now map through blank-line removal and continuation preprocessing, reporting the correct `line`/`column` in the original content via `ParseError`
+- **Grammar.parse() offset mapping** — New `_mapProcessedToOriginal()`, `_countRemovedBlankLines()`, and `_mapThroughContinuation()` helpers provide accurate error positions when the grammar preprocessor removes blank lines
+
+### Fixes
+- `#` characters in bare values no longer silently consume the rest of the line as arguments; inline comments are now properly parsed at the statement level
+- Negative lookahead `(ws() & char('#')).not()` removed from `rhsList()` — inline comment detection is now handled uniformly in `_statementWithTrailing()`
+
+## 2.2.0
+
+### Features
+- **ConfigFormatter** — New `formatter.dart` with `ConfigFormatter` class and `FormatterOptions` that serializes a `Config` AST back to formatted i3 config text. Supports custom indent, sorting assignments, and trailing newline control (`lib/src/v2/formatter.dart`)
+- **`toConfigString()` on Value types** — Every `Value` subtype (`BareArg`, `Quoted`, `VariableRef`, `ArrayValue`) now has a `toConfigString()` method for standalone serialization
+- **`i3fmt` CLI tool** — New `bin/i3fmt.dart` using `package:artisanal/args.dart` for styled help output. Reads from file or stdin, writes to stdout or `-o`. Supports `--indent` and `--sort` flags
+
+### Documentation
+- Added comprehensive language guide (`docs/v2/language-guide.md`) covering i3 config syntax and library usage end-to-end
+
+### Dependencies
+- Added `artisanal: ^0.3.0` dependency (used by the CLI tool)
+
 ## 2.1.1
 
 ### Fixes

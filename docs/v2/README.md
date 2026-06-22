@@ -298,6 +298,7 @@ See [Migration Guide](migration.md) for detailed upgrade instructions.
 
 ## Advanced Topics
 
+- [Language Guide](language-guide.md) - i3 config syntax and library usage
 - [Command Handlers](command-handlers.md) - Processing individual commands, including file imports
 - [Block Handlers](block-handlers.md) - Processing block types and scoped commands
 - [Context and Scoping](context-and-scoping.md) - Variable management and inheritance

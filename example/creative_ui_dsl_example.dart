@@ -506,6 +506,7 @@ class ConditionalBlockHandler implements BlockHandler {
             BareArg a => a.value,
             Quoted q => q.value,
             VariableRef v => '\$${v.name}',
+            ArrayValue a => a.items.map((v) => v.toString()).join(', '),
           };
           print('   ❌ Skipping disabled: $featureName');
           // Intentionally NOT processing disabled features

@@ -8,6 +8,10 @@ import 'package:petitparser/petitparser.dart';
 import 'package:source_span/source_span.dart';
 import 'ast.dart';
 
+/// Wrap a parser to produce a custom error message when it fails.
+Parser<T> _orError<T>(Parser<T> parser, String message) =>
+    [parser, failure<T>(message: message)].toChoiceParser();
+
 // ===== Helper Functions =====
 
 /// Global source file reference for position tracking
@@ -15,6 +19,12 @@ SourceFile? _globalSourceFile;
 
 final SettableParser<Command> _commandParser = undefined<Command>();
 bool _commandInitialized = false;
+
+final SettableParser<dynamic> _valueParser = undefined<dynamic>();
+bool _valueInitialized = false;
+
+final SettableParser<dynamic> _arrayValueParser = undefined<dynamic>();
+bool _arrayValueInitialized = false;
 
 /// Utility to annotate a node with span information
 T _annotate<T>(T node, int start, int end) {
@@ -165,7 +175,7 @@ Parser<String> dqChar() => pattern('^"\\\\\r\n');
 Parser<String> sqChar() => pattern("^'\\\\\r\n");
 
 Parser<Quoted> dqString() => position()
-    .seq((char('"') & (dqChar() | escapeSeq()).star() & char('"')).flatten())
+    .seq((char('"') & (dqChar() | escapeSeq()).star() & _orError(char('"'), "closing double quote")).flatten())
     .seq(position())
     .map(
       (vals) => _annotate(
@@ -181,7 +191,7 @@ Parser<Quoted> dqString() => position()
     );
 
 Parser<Quoted> sqString() => position()
-    .seq((char("'") & (sqChar() | escapeSeq()).star() & char("'")).flatten())
+    .seq((char("'") & (sqChar() | escapeSeq()).star() & _orError(char("'"), "closing single quote")).flatten())
     .seq(position())
     .map(
       (vals) => _annotate(
@@ -234,8 +244,7 @@ Parser bareChar() =>
     char('+') |
     char(',') |
     char('@') |
-    char('%') |
-    char('#'));
+    char('%'));
 
 Parser<BareArg> bareArg() => position()
     .seq(bareChar().plus().flatten())
@@ -245,9 +254,65 @@ Parser<BareArg> bareArg() => position()
           _annotate(BareArg(vals[1] as String), vals[0] as int, vals[2] as int),
     );
 
+// Bare char set without comma — used inside array literals so commas
+// are treated as separators rather than value characters.
+Parser _arrayBareChar() =>
+    (pattern('a-zA-Z0-9_') |
+    char('-') |
+    char('.') |
+    char('/') |
+    char('~') |
+    char('*') |
+    char('?') |
+    char('=') |
+    char('+') |
+    char('@') |
+    char('%'));
+
+Parser<BareArg> _arrayBareArg() => position()
+    .seq(_arrayBareChar().plus().flatten())
+    .seq(position())
+    .map(
+      (vals) =>
+          _annotate(BareArg(vals[1] as String), vals[0] as int, vals[2] as int),
+    );
+
 // ===== Values =====
 
-Parser value() => quotedString() | variableRef() | bareArg();
+Parser<ArrayValue> arrayLiteral() => position()
+    .seq(char('[') & wsOrNl().optional() &
+        (_arrayValue() & (wsOrNl().optional() & char(',') & wsOrNl().optional() & _arrayValue()).star()).optional() &
+        wsOrNl().optional() & _orError(char(']'), "closing bracket ']'"))
+    .seq(position())
+    .map((vals) {
+      final parts = vals[1] as List;
+      final optionalValues = parts[2]; // The optional value section
+      if (optionalValues == null) {
+        return _annotate(ArrayValue([]), vals[0] as int, vals[2] as int);
+      }
+      final values = <Value>[optionalValues[0] as Value];
+      final rest = optionalValues[1] as List;
+      for (final item in rest) {
+        values.add(item[3] as Value); // item is [ws?, ',', ws?, value]
+      }
+      return _annotate(ArrayValue(values), vals[0] as int, vals[2] as int);
+    });
+
+Parser _arrayValue() {
+  if (!_arrayValueInitialized) {
+    _arrayValueInitialized = true;
+    _arrayValueParser.set(quotedString() | variableRef() | arrayLiteral() | _arrayBareArg());
+  }
+  return _arrayValueParser;
+}
+
+Parser value() {
+  if (!_valueInitialized) {
+    _valueInitialized = true;
+    _valueParser.set(quotedString() | variableRef() | arrayLiteral() | bareArg());
+  }
+  return _valueParser;
+}
 
 // ===== Dotted identifiers for assignments =====
 
@@ -264,14 +329,15 @@ Parser<String> dottedIdent() =>
 
 Parser<String> lhs() => dottedIdent();
 
-Parser<String> assignOp() => (string('+=') | char('=')).flatten();
+Parser<String> assignOp() =>
+    _orError((string('+=') | char('=')).flatten(), "assignment operator '=' or '+='");
 
 Parser<List<Value>> rhsList() =>
-    (value() & ((ws() & char('#')).not() & ws() & value()).star()).map((parts) {
+    (value() & (ws() & value()).star()).map((parts) {
       final result = <Value>[parts[0] as Value];
       final rest = parts[1] as List;
       for (final item in rest) {
-        result.add(item[2] as Value);
+        result.add(item[1] as Value);
       }
       return result;
     });
@@ -311,7 +377,7 @@ Parser<List<Criterion>> criteria() =>
             critItem() &
             (ws().optional() & critItem()).star() &
             ws().optional() &
-            char(']'))
+            _orError(char(']'), "closing bracket ']'"))
         .map((parts) {
           final items = <Criterion>[parts[2] as Criterion];
           final rest = parts[3] as List;
@@ -441,19 +507,54 @@ Parser<List<Command>> chainLine() =>
 
 Parser<List<Command>> simpleCommand() => command().map((cmd) => [cmd]);
 
+// ===== Inline comment consumer =====
+
+/// Consumes whitespace + comment on the same line and attaches it as
+/// [Command.trailingComment] or [Assignment.trailingComment] on the
+/// last element of [statement]'s result list.
+Parser<List> _statementWithTrailing() =>
+    (statement() & (ws() & comment()).optional()).map((parts) {
+      final stmts = parts[0] as List;
+      final trailing = parts[1] as List?;
+      if (trailing != null) {
+        final content = (trailing[1] as Comment).content;
+        for (final stmt in stmts) {
+          if (stmt is Command) {
+            stmt.trailingComment = content;
+          } else if (stmt is Assignment) {
+            stmt.trailingComment = content;
+          }
+        }
+      }
+      return stmts;
+    });
+
 // ===== Blocks =====
 
 Parser<List<ConfigElement>> blockBody() =>
     (wsOrNl().optional() &
-            ((wsOrNl() & (comment() | assignStmt() | command())).star()) &
+            ((wsOrNl() & (comment() | _statementWithTrailing())).star()) &
             wsOrNl().optional())
         .map((parts) {
           final elements = parts[1] as List;
-          return elements.map((e) => e[1]).whereType<ConfigElement>().toList();
+          final flattened = <ConfigElement>[];
+          for (final elementGroup in elements) {
+            final element = elementGroup[1];
+            if (element is List) {
+              for (final item in element) {
+                if (item is ConfigElement) {
+                  flattened.add(item);
+                }
+              }
+            } else if (element is ConfigElement) {
+              flattened.add(element);
+            }
+          }
+          return flattened;
         });
 
 Parser<Block> block() => position()
-    .seq(char('{') & blockBody() & char('}'))
+    .seq(char('{') & blockBody() & _orError(char('}'), "closing brace '}'"))
     .seq(position())
     .map(
       (vals) => _annotate(
@@ -475,7 +576,7 @@ Parser statement() =>
 Parser<Config> configParser() => position()
     .seq(
       wsOrNl().optional() &
-          ((comment() | statement()) & wsOrNl().optional()).star() &
+          ((comment() | _statementWithTrailing()) & wsOrNl().optional()).star() &
           wsOrNl().optional(),
     )
     .seq(position())
@@ -530,16 +631,106 @@ class Grammar {
     } else {
       final failure = result as Failure;
       final position = failure.position;
-      final lines = content.substring(0, position).split('\n');
+      // Map the failure position from processed content back to original content.
+      // We build a cumulative offset map by re-running both preprocessing steps
+      // to determine how many characters were removed before `position`.
+      final origPos =
+          _mapProcessedToOriginal(content, position, lineContinuationProcessed);
+      final lines = content.substring(0, origPos).split('\n');
       final line = lines.length;
       final column = lines.last.length + 1;
-      throw ParseError(
-        'Parse error: ${failure.message}',
-        line,
-        column,
-        content.split('\n')[line - 1],
-      );
+      final message = _contextualMessage(content, origPos, failure.message);
+      throw ParseError(message, line, column, content.split('\n')[line - 1]);
     }
+  }
+
+  /// Map a position in processed content back to the original content position.
+  int _mapProcessedToOriginal(
+    String original,
+    int processedPos,
+    String afterContinuation,
+  ) {
+    // First, map processedPos through blank-line removal (step 2)
+    final blankLinesBefore = _countRemovedBlankLines(afterContinuation, processedPos);
+    final afterBlankRemoval = processedPos + blankLinesBefore;
+
+    // Then, map through line-continuation joining (step 1)
+    return _mapThroughContinuation(original, afterBlankRemoval);
+  }
+
+  /// Count how many blank/whitespace-only lines were removed by
+  /// [_preprocessContent] up to the given offset in the continuation-processed
+  /// content.
+  int _countRemovedBlankLines(String content, int offset) {
+    final processedUpTo = content.substring(0, offset);
+    final processedLines = processedUpTo.split('\n');
+    final allLines = content.split('\n');
+    int removed = 0;
+    for (int i = 0; i < processedLines.length && i < allLines.length; i++) {
+      if (allLines[i].trim().isEmpty) {
+        removed++;
+      }
+    }
+    return removed;
+  }
+
+  /// Map an offset through line-continuation preprocessing.
+  int _mapThroughContinuation(String original, int offset) {
+    final lines = original.split('\n');
+    int originalOffset = 0;
+    int processedOffset = 0;
+    for (int i = 0; i < lines.length && processedOffset <= offset; i++) {
+      final line = lines[i];
+      if (line.endsWith('\\')) {
+        // Line continuation: backslash + newline removed from original
+        // The continuation joins: backslash (1), newline (1) = 2 removed chars
+        final continuationLen = line.length - 1; // Without backslash
+        if (processedOffset + continuationLen >= offset) {
+          // Offset falls within this line
+          return originalOffset + (offset - processedOffset);
+        }
+        processedOffset += continuationLen; // No newline in processed
+        originalOffset += line.length + 1; // +1 for newline in original
+        // Skip the next line (already joined)
+        if (i + 1 < lines.length) {
+          i++; // Will be incremented again by loop
+          originalOffset += lines[i].length + 1; // Consume skipped line + newline
+        }
+      } else {
+        // Normal line
+        if (processedOffset + line.length + 1 > offset) {
+          return originalOffset + (offset - processedOffset);
+        }
+        processedOffset += line.length + 1;
+        originalOffset += line.length + 1;
+      }
+    }
+    return originalOffset;
+  }
+
+  /// Generate a contextual error message when PetitParser's default message is generic.
+  String _contextualMessage(String content, int position, String originalMessage) {
+    if (position < content.length) {
+      final char = content[position];
+      switch (char) {
+        case '[':
+          return "missing closing bracket ']'";
+        case '{':
+          return "missing closing brace '}'";
+        case '"':
+          return "missing closing double quote";
+        case "'":
+          return "missing closing single quote";
+        case ']':
+          return "unexpected closing bracket ']'";
+        case '}':
+          return "unexpected closing brace '}'";
+        case ';':
+          return "expected a command after ';'";
+      }
+      return "unexpected character '$char'";
+    }
+    return 'Parse error: $originalMessage';
   }
 
   /// Preprocess content to handle line continuations.

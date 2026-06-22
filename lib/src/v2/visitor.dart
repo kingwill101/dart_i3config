@@ -21,4 +21,7 @@ abstract class ConfigVisitor<T> {
 
   /// Visit a Value element.
   T visitValue(Value value);
+
+  /// Visit an ArrayValue element.
+  T visitArrayValue(ArrayValue value);
 }

@@ -25,6 +25,7 @@ final config = Config.parse(configContent);
                   BareArg bare => bare.value,
                   Quoted quoted => '"${quoted.value}"',
                   VariableRef ref => '\$${ref.name}',
+                  ArrayValue a => a.items.map((v) => v.toString()).join(', '),
                 })
             .join(' ');
         print('Assignment → ${assignment.variable} ${assignment.operator} $values');
@@ -35,6 +36,7 @@ final config = Config.parse(configContent);
                   BareArg bare => bare.value,
                   Quoted quoted => '"${quoted.value}"',
                   VariableRef ref => '\$${ref.name}',
+                  ArrayValue a => a.items.map((v) => v.toString()).join(', '),
                 })
             .join(' ');
         print('Command    → ${command.head} $args');

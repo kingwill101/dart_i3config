@@ -182,6 +182,11 @@ class CommandCollectorVisitor
     return _commands;
   }
 
+  @override
+  Map<String, List<Command>> visitArrayValue(ArrayValue value) {
+    return _commands;
+  }
+
   void _visitElement(ConfigElement element) {
     switch (element) {
       case Assignment assignment:
@@ -293,9 +298,19 @@ class ConfigValidatorVisitor implements ConfigVisitor<List<String>> {
           _errors.add('Bare argument is empty');
         }
         break;
+      case ArrayValue array:
+        if (array.items.isEmpty) {
+          _errors.add('Array is empty');
+        }
+        break;
     }
 
     return _errors;
+  }
+
+  @override
+  List<String> visitArrayValue(ArrayValue value) {
+    return visitValue(value);
   }
 
   void _visitElement(ConfigElement element) {

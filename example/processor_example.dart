@@ -121,6 +121,10 @@ class CustomExecHandler implements CommandHandler {
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
+      case ArrayValue array:
+        return array.items
+            .map((v) => _expandValue(v, context))
+            .join(', ');
     }
   }
 }

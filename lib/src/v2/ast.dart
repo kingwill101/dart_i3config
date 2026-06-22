@@ -105,11 +105,14 @@ class Assignment extends Statement {
   final AssignmentOperator operator; // Assignment operator
   final List<Value> values; // Right-hand side values
 
+  /// Inline comment at the end of the line (without `#` prefix).
+  String? trailingComment;
+
   Assignment(this.variable, this.operator, this.values, [super.span]);
 
   @override
   String toString() =>
-      'Assignment(variable: $variable, operator: $operator, values: $values)';
+      'Assignment(variable: $variable, operator: $operator, values: $values${trailingComment != null ? ', trailing: $trailingComment' : ''})';
 
   @override
   Map<String, dynamic> toJson() => {
@@ -117,13 +120,14 @@ class Assignment extends Statement {
     'variable': variable,
     'operator': operator.symbol,
     'values': values.map((v) => v.toJson()).toList(),
+    if (trailingComment != null) 'trailingComment': trailingComment,
   };
 
   factory Assignment.fromJson(Map<String, dynamic> json) => Assignment(
     json['variable'],
     AssignmentOperator.fromSymbol(json['operator']),
     (json['values'] as List).map((v) => Value.fromJson(v)).toList(),
-  );
+  )..trailingComment = json['trailingComment'] as String?;
 }
 
 /// Block statement: `{ ... }` with optional type and identifier
@@ -170,12 +174,15 @@ class Command extends Statement {
   final List<Criterion>? criteria;
   final Block? block;
 
+  /// Inline comment at the end of the line (without `#` prefix).
+  String? trailingComment;
+
   Command(this.head, this.args, [this.criteria, this.block, SourceSpan? span])
     : super(span);
 
   @override
   String toString() =>
-      'Command(head: $head, args: $args, criteria: $criteria, block: $block)';
+      'Command(head: $head, args: $args, criteria: $criteria, block: $block${trailingComment != null ? ', trailing: $trailingComment' : ''})';
 
   @override
   Map<String, dynamic> toJson() => {
@@ -184,16 +191,21 @@ class Command extends Statement {
     'args': args.map((a) => a.toJson()).toList(),
     'criteria': criteria?.map((c) => c.toJson()).toList(),
     'block': block?.toJson(),
+    if (trailingComment != null) 'trailingComment': trailingComment,
   };
 
-  factory Command.fromJson(Map<String, dynamic> json) => Command(
-    json['head'],
-    (json['args'] as List).map((a) => Value.fromJson(a)).toList(),
-    json['criteria'] != null
-        ? (json['criteria'] as List).map((c) => Criterion.fromJson(c)).toList()
-        : null,
-    json['block'] != null ? Block.fromJson(json['block']) : null,
-  );
+  factory Command.fromJson(Map<String, dynamic> json) {
+    final cmd = Command(
+      json['head'],
+      (json['args'] as List).map((a) => Value.fromJson(a)).toList(),
+      json['criteria'] != null
+          ? (json['criteria'] as List).map((c) => Criterion.fromJson(c)).toList()
+          : null,
+      json['block'] != null ? Block.fromJson(json['block']) : null,
+    );
+    cmd.trailingComment = json['trailingComment'] as String?;
+    return cmd;
+  }
 }
 
 /// Comment element

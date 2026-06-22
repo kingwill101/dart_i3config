@@ -33,6 +33,8 @@ abstract class BaseCommandHandler<T> implements CommandHandler {
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
+      case ArrayValue array:
+        return array.items.map((v) => expandValue(v, context)).join(', ');
     }
   }
 
@@ -158,6 +160,8 @@ abstract class BaseBlockHandler implements BlockHandler {
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
+      case ArrayValue array:
+        return array.items.map((v) => expandValue(v, context)).join(', ');
     }
   }
 
@@ -253,6 +257,8 @@ extension CommandValueExtraction on Command {
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
+      case ArrayValue array:
+        return array.items.map((v) => _expandValue(v, context)).join(', ');
     }
   }
 }
