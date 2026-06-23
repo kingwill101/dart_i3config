@@ -1,6 +1,6 @@
 import 'package:i3config/i3config_v2.dart' show ConfigProcessor;
 import 'package:test/test.dart';
-import 'package:i3config/src/v2/test_vfs.dart';
+import 'package:i3config/src/test_vfs.dart';
 
 void main() {
   group('Include command tests', () {
