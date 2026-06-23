@@ -1,4 +1,4 @@
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Example demonstrating simple AST iteration with V2 parser
 /// without using the state machine - perfect for users who want

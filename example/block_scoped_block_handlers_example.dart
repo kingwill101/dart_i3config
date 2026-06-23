@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Example demonstrating block-scoped block handler registration.
 ///

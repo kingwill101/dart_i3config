@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Example showing how to use command return values
 Future<void> main() async {

@@ -1,4 +1,4 @@
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Demonstrates dotted command heads, hex color values, inline comments,
 /// and the formatter round-trip.

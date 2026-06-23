@@ -1,4 +1,4 @@
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Comprehensive example demonstrating how i3/Sway configurations
 /// map to handlers and processing in the V2 state machine.

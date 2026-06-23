@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Example showing custom child processing with super.processChildren()
 Future<void> main() async {

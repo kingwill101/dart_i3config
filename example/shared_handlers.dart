@@ -5,7 +5,7 @@
 /// test-only code.
 library;
 
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 import 'package:source_span/source_span.dart';
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 Future<void> main() async {
   final configContent = '''

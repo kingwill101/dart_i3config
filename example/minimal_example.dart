@@ -1,4 +1,4 @@
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 /// Minimal example showing default behavior - only global 'set' command is supported.
 Future<void> main() async {
