@@ -1,5 +1,7 @@
 import 'package:i3config/src/v2/handlers.dart';
 import 'package:i3config/src/v2/state.dart';
+import 'package:i3config/src/v2/value.dart' show BlockReference;
+import 'package:source_span/source_span.dart';
 
 /// Context object that holds processing state and configuration.
 class Context {
@@ -35,8 +37,21 @@ class Context {
   /// Error handler for processing errors.
   ErrorHandler? errorHandler;
 
+  /// If true, report warnings for unresolved variable references.
+  bool reportUnresolvedVariables = false;
+
+  /// If true, report warnings for unresolved block references.
+  bool reportUnresolvedBlockReferences = false;
+
   /// Create a new processing context.
   Context({this.parentContext, this.errorHandler});
+
+  /// Report an error through the error handler with optional source span.
+  void reportError(String message, {SourceSpan? span}) {
+    if (errorHandler != null) {
+      errorHandler!.handleError(message, this, span: span);
+    }
+  }
 
   /// Push a new context onto the stack (e.g., when entering a block).
   /// This creates a child context that has access to parent variables.
@@ -123,5 +138,98 @@ class Context {
       current = current.parentContext;
     }
     return current;
+  }
+
+  /// Registry of processed block properties, keyed by (blockType, identifier).
+  final Map<String, Map<String?, Map<String, dynamic>>> blockRegistry = {};
+
+  /// Register a processed block and its properties.
+  void registerBlock(
+    String blockType,
+    String? identifier,
+    Map<String, dynamic> properties,
+  ) {
+    blockRegistry.putIfAbsent(blockType, () => {})[identifier] = Map.from(properties);
+  }
+
+  /// Resolve a [BlockReference] against the block registry.
+  /// Returns the property value as a string, or empty string if unresolved.
+  String resolveBlockReference(BlockReference ref) {
+    final path = ref.path;
+    if (path.isEmpty) return '';
+
+    final blockType = path.first;
+
+    final typeEntries = blockRegistry[blockType];
+    if (typeEntries == null || typeEntries.isEmpty) {
+      if (reportUnresolvedBlockReferences) {
+        reportError('Unknown block reference: ${ref.toConfigString()}', span: ref.span);
+      }
+      return '';
+    }
+
+    if (path.length == 1) {
+      return typeEntries.values.map((m) => m.values.join(' ')).join(' ');
+    }
+
+    String? identifier;
+    List<String> propertyPath;
+
+    if (typeEntries.containsKey(path[1])) {
+      identifier = path[1];
+      propertyPath = path.length > 2 ? path.sublist(2) : [];
+    } else {
+      identifier = null;
+      propertyPath = path.sublist(1);
+    }
+
+    if (identifier != null) {
+      final blockProps = typeEntries[identifier];
+      if (blockProps == null) {
+        if (reportUnresolvedBlockReferences) {
+          reportError('Unknown block identifier: ${ref.toConfigString()}', span: ref.span);
+        }
+        return '';
+      }
+      if (propertyPath.isEmpty) return blockProps.values.join(' ');
+      dynamic current = blockProps;
+      for (final prop in propertyPath) {
+        if (current is Map<String, dynamic>) {
+          current = current[prop];
+        } else {
+          if (reportUnresolvedBlockReferences) {
+            reportError('Unknown block property: ${ref.toConfigString()}', span: ref.span);
+          }
+          return '';
+        }
+        if (current == null) {
+          if (reportUnresolvedBlockReferences) {
+            reportError('Unknown block property: ${ref.toConfigString()}', span: ref.span);
+          }
+          return '';
+        }
+      }
+      return current.toString();
+    }
+
+    for (final entry in typeEntries.values) {
+      if (entry.isEmpty) continue;
+      dynamic current = entry;
+      for (final prop in propertyPath) {
+        if (current is Map<String, dynamic>) {
+          current = current[prop];
+        } else {
+          current = null;
+          break;
+        }
+        if (current == null) break;
+      }
+      if (current != null) return current.toString();
+    }
+
+    if (reportUnresolvedBlockReferences) {
+      reportError('Unknown block reference: ${ref.toConfigString()}', span: ref.span);
+    }
+    return '';
   }
 }
