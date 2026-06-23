@@ -517,6 +517,7 @@ class ConditionalBlockHandler implements BlockHandler {
                   })
                   .join(''),
             ArrayValue a => a.items.map((v) => v.toString()).join(', '),
+            TripleQuoted t => t.value,
             BlockReference r => r.path.join('.'),
           };
           print('   ❌ Skipping disabled: $featureName');

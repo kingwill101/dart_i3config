@@ -162,6 +162,7 @@ String _expandFirstArg(Command command, Context context) {
   final value = command.args.first;
   return switch (value) {
     Quoted q => context.expandVariables(q.value),
+    TripleQuoted t => t.value,
     VariableRef vr => context.getVariable(vr.name) ?? '\$${vr.name}',
     BareArg b => context.expandVariables(b.value),
     ArrayValue a =>

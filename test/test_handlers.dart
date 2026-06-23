@@ -289,6 +289,11 @@ class ConfigValidatorVisitor implements ConfigVisitor<List<String>> {
           _errors.add('Quoted string is empty');
         }
         break;
+      case TripleQuoted triple:
+        if (triple.value.isEmpty) {
+          _errors.add('Triple-quoted string is empty');
+        }
+        break;
       case VariableRef varRef:
         if (varRef.name.isEmpty) {
           _errors.add('Variable reference has empty name');

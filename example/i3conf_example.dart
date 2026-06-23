@@ -25,6 +25,7 @@ set \$terminal i3-sensible-terminal
               (value) => switch (value) {
                 BareArg bare => bare.value,
                 Quoted quoted => '"${quoted.value}"',
+                TripleQuoted t => '"""${t.value}"""',
                 VariableRef ref => '\$${ref.name}',
                 InterpolatedString interp => interpolatedStringDisplay(interp),
                 ArrayValue a => a.items.map((v) => v.toString()).join(', '),
@@ -42,6 +43,7 @@ set \$terminal i3-sensible-terminal
               (value) => switch (value) {
                 BareArg bare => bare.value,
                 Quoted quoted => '"${quoted.value}"',
+                TripleQuoted t => '"""${t.value}"""',
                 VariableRef ref => '\$${ref.name}',
                 InterpolatedString interp => interpolatedStringDisplay(interp),
                 ArrayValue a => a.items.map((v) => v.toString()).join(', '),

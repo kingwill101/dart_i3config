@@ -278,6 +278,61 @@ Parser<Quoted> sqString() => position()
 
 Parser quotedString() => dqString() | sqString();
 
+// ===== Triple-quoted strings =====
+
+/// Custom parser that matches any character until the closing delimiter,
+/// without consuming the delimiter itself.
+class _TripleQuoteContent extends Parser<String> {
+  _TripleQuoteContent(this.closing);
+
+  final String closing;
+
+  @override
+  Result<String> parseOn(Context context) {
+    final buffer = context.buffer;
+    final start = context.position;
+    var position = start;
+    while (position < buffer.length) {
+      if (buffer.startsWith(closing, position)) {
+        return Success<String>(buffer, position, buffer.substring(start, position));
+      }
+      position++;
+    }
+    return Success<String>(buffer, position, buffer.substring(start, position));
+  }
+
+  @override
+  _TripleQuoteContent copy() => _TripleQuoteContent(closing);
+}
+
+Parser<Value> tripleDqString() => position()
+    .seq(
+      (string('"""') &
+              _TripleQuoteContent('"""') &
+              _orError(string('"""'), "unclosed triple-quoted string"))
+          .flatten(),
+    )
+    .seq(position())
+    .map((vals) {
+      final full = vals[1] as String;
+      final body = full.substring(3, full.length - 3);
+      return _annotate(TripleQuoted(body, '"""'), vals[0] as int, vals[2] as int);
+    });
+
+Parser<Value> tripleSqString() => position()
+    .seq(
+      (string("'''") &
+              _TripleQuoteContent("'''") &
+              _orError(string("'''"), "unclosed triple-quoted string"))
+          .flatten(),
+    )
+    .seq(position())
+    .map((vals) {
+      final full = vals[1] as String;
+      final body = full.substring(3, full.length - 3);
+      return _annotate(TripleQuoted(body, "'''"), vals[0] as int, vals[2] as int);
+    });
+
 // ===== Variables =====
 
 Parser<String> varName() =>
@@ -419,6 +474,8 @@ Parser _arrayValue() {
     _arrayValueParser.set(
       hexColor() |
           blockReference() |
+          tripleDqString() |
+          tripleSqString() |
           quotedString() |
           variableRef() |
           arrayLiteral() |
@@ -434,6 +491,8 @@ Parser value() {
     _valueParser.set(
       hexColor() |
           blockReference() |
+          tripleDqString() |
+          tripleSqString() |
           quotedString() |
           variableRef() |
           arrayLiteral() |
@@ -875,47 +934,102 @@ class Grammar {
     return 'Parse error: $originalMessage';
   }
 
+  /// Find spans of triple-quoted strings ("""...""" or '''...''')
+  /// so preprocessing can skip them.
+  static List<({int start, int end})> _findTripleQuoteSpans(
+      String content) {
+    final spans = <({int start, int end})>[];
+    int i = 0;
+    while (i < content.length) {
+      if (i + 2 < content.length) {
+        final triple = content.substring(i, i + 3);
+        if (triple == '"""' || triple == "'''") {
+          final lineStart = content.lastIndexOf('\n', i) + 1;
+          final lineBefore = content.substring(lineStart, i);
+          if (lineBefore.contains('#')) {
+            i += 3;
+            continue;
+          }
+          final close = content.indexOf(triple, i + 3);
+          if (close == -1) break;
+          spans.add((start: i, end: close + 3));
+          i = close + 3;
+          continue;
+        }
+      }
+      i++;
+    }
+    return spans;
+  }
+
+  /// Run [processor] on content, but preserve triple-quoted string regions.
+  static String _processPreservingTripleQuotes(
+      String content, String Function(String) processor) {
+    final spans = _findTripleQuoteSpans(content);
+    if (spans.isEmpty) return processor(content);
+
+    final buffer = StringBuffer();
+    int pos = 0;
+    for (final span in spans) {
+      if (pos < span.start) {
+        buffer.write(processor(content.substring(pos, span.start)));
+      }
+      buffer.write(content.substring(span.start, span.end));
+      pos = span.end;
+    }
+    if (pos < content.length) {
+      buffer.write(processor(content.substring(pos)));
+    }
+    return buffer.toString();
+  }
+
   /// Preprocess content to handle line continuations.
   String preprocess(String content) {
-    final lines = content.split('\n');
+    return Grammar._processPreservingTripleQuotes(
+      content,
+      _handleLineContinuation,
+    );
+  }
+
+  static String _handleLineContinuation(String plain) {
+    final lines = plain.split('\n');
     final processedLines = <String>[];
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
-
-      // Check for line continuation (backslash at end of line)
       if (line.endsWith('\\')) {
-        // Find the next non-empty line
         int nextLine = i + 1;
-        while (nextLine < lines.length && lines[nextLine].trim().isEmpty) {
+        while (nextLine < lines.length &&
+            lines[nextLine].trim().isEmpty) {
           nextLine++;
         }
-
         if (nextLine < lines.length) {
-          // Join the lines with a space
-          final continuation =
-              '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}';
-          processedLines.add(continuation);
-          i = nextLine; // Skip the next line as it's been merged
+          processedLines.add(
+              '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}');
+          i = nextLine;
         } else {
-          // Remove trailing backslash if no continuation
           processedLines.add(line.substring(0, line.length - 1));
         }
       } else {
         processedLines.add(line);
       }
     }
-
     return processedLines.join('\n');
   }
 
   /// Preprocess content to handle empty lines and whitespace
   String _preprocessContent(String content) {
-    // Remove empty lines but keep comment-only lines
-    final lines = content.split('\n');
+    return Grammar._processPreservingTripleQuotes(
+      content,
+      _removeBlankLines,
+    );
+  }
+
+  static String _removeBlankLines(String plain) {
+    final lines = plain.split('\n');
     final nonEmptyLines = lines.where((line) {
       final trimmed = line.trim();
-      return trimmed.isNotEmpty; // Keep comments and other content
+      return trimmed.isNotEmpty;
     }).toList();
     return nonEmptyLines.join('\n');
   }

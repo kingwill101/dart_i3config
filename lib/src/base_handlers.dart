@@ -29,6 +29,8 @@ abstract class BaseCommandHandler<T> implements CommandHandler {
     switch (value) {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
+      case TripleQuoted triple:
+        return triple.value;
       case VariableRef varRef:
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
@@ -63,7 +65,8 @@ abstract class BaseCommandHandler<T> implements CommandHandler {
           buffer.write(resolved);
         } else {
           if (context.reportUnresolvedVariables) {
-            context.reportError('Unknown variable: \$${seg.name}', span: null);
+            context
+                .reportError('Unknown variable: \$${seg.name}', span: null);
           }
           buffer.write('\$${seg.name}');
         }
@@ -190,6 +193,8 @@ abstract class BaseBlockHandler implements BlockHandler {
     switch (value) {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
+      case TripleQuoted triple:
+        return triple.value;
       case VariableRef varRef:
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
@@ -321,6 +326,8 @@ extension CommandValueExtraction on Command {
     switch (value) {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
+      case TripleQuoted triple:
+        return triple.value;
       case VariableRef varRef:
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;

@@ -27,12 +27,14 @@ sealed class Value {
         return BareArg.fromJson(json);
       case 'ArrayValue':
         return ArrayValue.fromJson(json);
-      case 'InterpolatedString':
-        return InterpolatedString.fromJson(json);
-      case 'BlockReference':
-        return BlockReference.fromJson(json);
-      default:
-        throw Exception('Unknown Value type: ${json['type']}');
+       case 'InterpolatedString':
+         return InterpolatedString.fromJson(json);
+       case 'BlockReference':
+         return BlockReference.fromJson(json);
+       case 'TripleQuoted':
+         return TripleQuoted.fromJson(json);
+       default:
+         throw Exception('Unknown Value type: ${json['type']}');
     }
   }
 }
@@ -89,6 +91,33 @@ class Quoted extends Value {
 
   factory Quoted.fromJson(Map<String, dynamic> json) =>
       Quoted(json['value'], json['quoteChar']);
+}
+
+/// Triple-quoted string value (multi-line literal).
+///
+/// Supports both `"""..."""` and `'''...'''` delimiters.
+/// Content is taken literally — no escape sequence processing.
+class TripleQuoted extends Value {
+  final String value;
+  final String delimiter; // '"""' or "'''"
+
+  TripleQuoted(this.value, this.delimiter, [super.span]);
+
+  @override
+  String toString() => 'TripleQuoted($delimiter$value$delimiter)';
+
+  @override
+  String toConfigString() => '$delimiter$value$delimiter';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'TripleQuoted',
+    'value': value,
+    'delimiter': delimiter,
+  };
+
+  factory TripleQuoted.fromJson(Map<String, dynamic> json) =>
+      TripleQuoted(json['value'], json['delimiter']);
 }
 
 /// Variable reference: `$variable`

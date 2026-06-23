@@ -12,6 +12,8 @@ mixin ValueExpander {
     switch (value) {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
+      case TripleQuoted triple:
+        return triple.value;
       case VariableRef varRef:
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;

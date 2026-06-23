@@ -117,6 +117,8 @@ class CustomExecHandler implements CommandHandler {
     switch (value) {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
+      case TripleQuoted triple:
+        return triple.value;
       case VariableRef varRef:
         return context.getVariable(varRef.name) ?? '\$${varRef.name}';
       case BareArg bareArg:
