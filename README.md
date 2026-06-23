@@ -316,12 +316,12 @@ Full runnable examples are in the [example/](example/) directory:
 
 ## Documentation
 
-- [Language Guide](docs/language-guide.md) — i3 config syntax and library usage
-- [Block Handlers](docs/block-handlers.md) — processing block types and scoped commands
-- [Command Handlers](docs/command-handlers.md) — processing individual commands, file imports
-- [Context and Scoping](docs/context-and-scoping.md) — variable management and inheritance
-- [Configuration Examples](docs/configuration-examples.md) — real-world config to handler mapping
-- [Simple AST Iteration](docs/simple-ast-iteration.md) — using the parser without the state machine
+- [Language Guide](doc/language-guide.md) — i3 config syntax and library usage
+- [Block Handlers](doc/block-handlers.md) — processing block types and scoped commands
+- [Command Handlers](doc/command-handlers.md) — processing individual commands, file imports
+- [Context and Scoping](doc/context-and-scoping.md) — variable management and inheritance
+- [Configuration Examples](doc/configuration-examples.md) — real-world config to handler mapping
+- [Simple AST Iteration](doc/simple-ast-iteration.md) — using the parser without the state machine
 
 ## License
 
