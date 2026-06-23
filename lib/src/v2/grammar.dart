@@ -168,26 +168,81 @@ Parser<String> escapeSeq() =>
                 char(' ')))
         .flatten();
 
+// ===== Interpolation helpers =====
+
+List<ValueSegment> _splitInterpolation(String raw) {
+  if (!raw.contains('\$')) return [ValueSegmentLiteral(raw)];
+
+  final segments = <ValueSegment>[];
+  int lastEnd = 0;
+  final positions = <int>[];
+
+  for (int i = 0; i < raw.length; i++) {
+    if (raw[i] == '\$' && (i == 0 || raw[i - 1] != '\\')) {
+      positions.add(i);
+    }
+  }
+
+  for (final pos in positions) {
+    if (lastEnd < pos) {
+      segments.add(ValueSegmentLiteral(raw.substring(lastEnd, pos)));
+    }
+    final varMatch = _varNamePattern.matchAsPrefix(raw, pos + 1);
+    if (varMatch != null) {
+      segments.add(ValueSegmentVariableReference(raw.substring(pos + 1, varMatch.end)));
+      segments.add(ValueSegmentLiteral(''));
+      lastEnd = varMatch.end;
+    } else {
+      lastEnd = pos;
+    }
+  }
+
+  if (lastEnd < raw.length) {
+    segments.add(ValueSegmentLiteral(raw.substring(lastEnd)));
+  }
+
+  return segments.isEmpty ? [ValueSegmentLiteral('')] : segments;
+}
+
+RegExp _varNamePattern = RegExp(r'[a-zA-Z_][a-zA-Z0-9_-]*');
+
 // ===== Strings =====
 
 Parser<String> dqChar() => pattern('^"\\\\\r\n');
 
 Parser<String> sqChar() => pattern("^'\\\\\r\n");
 
-Parser<Quoted> dqString() => position()
-    .seq((char('"') & (dqChar() | escapeSeq()).star() & _orError(char('"'), "closing double quote")).flatten())
+Parser<Value> dqString() => position()
+    .seq(
+      (char('"') &
+          (dqChar() | escapeSeq()).star() &
+          _orError(char('"'), "closing double quote")).flatten(),
+    )
     .seq(position())
     .map(
-      (vals) => _annotate(
-        Quoted(
-          _processEscapeSequences(
-            (vals[1] as String).substring(1, (vals[1] as String).length - 1),
-          ),
-          '"',
-        ),
-        vals[0] as int,
-        vals[2] as int,
-      ),
+      (vals) {
+        final full = vals[1] as String;
+        final raw = full.substring(1, full.length - 1);
+
+        final segments = _splitInterpolation(raw);
+        final hasVar =
+            segments.any((s) => s is ValueSegmentVariableReference);
+        final spanStart = vals[0] as int;
+        final spanEnd = vals[2] as int;
+
+        if (!hasVar) {
+          final text =
+              segments.whereType<ValueSegmentLiteral>().map((s) => s.text).join();
+          return _annotate(Quoted(_processEscapeSequences(text), '"'), spanStart, spanEnd);
+        }
+
+        final processed = segments
+            .map((s) => s is ValueSegmentLiteral
+                ? ValueSegmentLiteral(_processEscapeSequences(s.text))
+                : s);
+        return _annotate(
+            InterpolatedString(processed.toList(), '"'), spanStart, spanEnd);
+      },
     );
 
 Parser<Quoted> sqString() => position()
@@ -244,7 +299,8 @@ Parser bareChar() =>
     char('+') |
     char(',') |
     char('@') |
-    char('%'));
+    char('%') |
+    char(':'));
 
 Parser<BareArg> bareArg() => position()
     .seq(bareChar().plus().flatten())
@@ -267,7 +323,8 @@ Parser _arrayBareChar() =>
     char('=') |
     char('+') |
     char('@') |
-    char('%'));
+    char('%') |
+    char(':'));
 
 Parser<BareArg> _arrayBareArg() => position()
     .seq(_arrayBareChar().plus().flatten())
@@ -277,9 +334,44 @@ Parser<BareArg> _arrayBareArg() => position()
           _annotate(BareArg(vals[1] as String), vals[0] as int, vals[2] as int),
     );
 
+// ===== Block References =====
+
+Parser<String> blockIdent() => pattern('a-zA-Z0-9_\\-').plus().flatten();
+
+Parser<List<String>> _blockRefPathSegments() =>
+    (blockIdent() &
+            char('.') &
+            blockIdent() &
+            (char('.') & blockIdent()).star())
+        .map((parts) {
+          final first = parts[0] as String;
+          final second = parts[2] as String;
+          final rest = parts[3] as List;
+          final result = <String>[first, second];
+          for (final item in rest) {
+            result.add(item[1] as String);
+          }
+          return result;
+        });
+
+Parser<BlockReference> blockReference() =>
+    _blockRefPathSegments().map((path) => BlockReference(path));
+
+// ===== Hex Colors =====
+
+Parser<BareArg> hexColor() => position()
+    .seq(
+      (char('#') & pattern('0-9a-fA-F').plus()).flatten(),
+    )
+    .seq(position())
+    .map(
+      (vals) =>
+          _annotate(BareArg(vals[1] as String), vals[0] as int, vals[2] as int),
+    );
+
 // ===== Values =====
 
-Parser<ArrayValue> arrayLiteral() => position()
+  Parser<ArrayValue> arrayLiteral() => position()
     .seq(char('[') & wsOrNl().optional() &
         (_arrayValue() & (wsOrNl().optional() & char(',') & wsOrNl().optional() & _arrayValue()).star()).optional() &
         wsOrNl().optional() & _orError(char(']'), "closing bracket ']'"))
@@ -298,21 +390,21 @@ Parser<ArrayValue> arrayLiteral() => position()
       return _annotate(ArrayValue(values), vals[0] as int, vals[2] as int);
     });
 
-Parser _arrayValue() {
-  if (!_arrayValueInitialized) {
-    _arrayValueInitialized = true;
-    _arrayValueParser.set(quotedString() | variableRef() | arrayLiteral() | _arrayBareArg());
+  Parser _arrayValue() {
+    if (!_arrayValueInitialized) {
+      _arrayValueInitialized = true;
+      _arrayValueParser.set(hexColor() | blockReference() | quotedString() | variableRef() | arrayLiteral() | _arrayBareArg());
+    }
+    return _arrayValueParser;
   }
-  return _arrayValueParser;
-}
 
-Parser value() {
-  if (!_valueInitialized) {
-    _valueInitialized = true;
-    _valueParser.set(quotedString() | variableRef() | arrayLiteral() | bareArg());
+  Parser value() {
+    if (!_valueInitialized) {
+      _valueInitialized = true;
+      _valueParser.set(hexColor() | blockReference() | quotedString() | variableRef() | arrayLiteral() | bareArg());
+    }
+    return _valueParser;
   }
-  return _valueParser;
-}
 
 // ===== Dotted identifiers for assignments =====
 
@@ -344,8 +436,7 @@ Parser<List<Value>> rhsList() =>
 
 // ===== Command head =====
 
-Parser<String> commandHead() =>
-    (pattern('a-zA-Z') & pattern('a-zA-Z0-9_\\-').star()).flatten();
+Parser<String> commandHead() => dottedIdent();
 
 // ===== Criteria parsing =====
 
