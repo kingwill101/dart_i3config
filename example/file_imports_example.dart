@@ -64,7 +64,9 @@ exec feh --bg-scale \$wallpaper
   }
 
   print('\n─── Test the same config with PhysicalFileSystem ────');
-  print('(This would read real files from disk; skipping read to avoid errors)');
+  print(
+    '(This would read real files from disk; skipping read to avoid errors)',
+  );
 
   print('\n=== Key Points ===');
   print('1. IncludeHandler uses FileSystem abstraction (not dart:io directly)');

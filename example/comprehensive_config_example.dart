@@ -74,23 +74,23 @@ app "firefox" {
 
   // Parse configuration
   final config = Config.parse(configContent);
-  
+
   // Create processor with custom handlers
   final processor = ConfigProcessor();
-  
+
   // Register global command handlers
   processor.registerCommandHandler(BindsymHandler());
   processor.registerCommandHandler(AssignHandler());
   processor.registerCommandHandler(ForWindowHandler());
-  
+
   // Register block handlers
   processor.registerBlockHandler(BarBlockHandler());
   processor.registerBlockHandler(ModeBlockHandler());
   processor.registerBlockHandler(AppBlockHandler());
-  
+
   // Process configuration
   await processor.process(config);
-  
+
   print('\n=== Processing Complete ===');
   print('Global variables: ${processor.context.variables.keys}');
 }
@@ -111,7 +111,8 @@ class BindsymHandler extends BaseCommandHandler<void> {
     print('⌨️  Key binding: $key -> $action');
 
     // Store in context
-    final bindings = context.getVariable('key_bindings') as Map<String, String>? ?? {};
+    final bindings =
+        context.getVariable('key_bindings') as Map<String, String>? ?? {};
     bindings[key] = action;
     context.setVariable('key_bindings', bindings);
   }
@@ -120,18 +121,21 @@ class BindsymHandler extends BaseCommandHandler<void> {
 class AssignHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'assign';
-  
+
   @override
   void handle(Command command, Context context) {
     final criteriaStr = command.criteria
         ?.map((c) => '${c.key}=${expandValue(c.value, context)}')
         .join(', ');
     final workspace = command.getArgAsString(0, context);
-    
+
     print('🪟 Window assignment: $criteriaStr -> workspace $workspace');
-    
+
     // Store in context
-    final assignments = context.getVariable('window_assignments') as List<Map<String, String>>? ?? [];
+    final assignments =
+        context.getVariable('window_assignments')
+            as List<Map<String, String>>? ??
+        [];
     assignments.add({'criteria': criteriaStr ?? '', 'workspace': workspace});
     context.setVariable('window_assignments', assignments);
   }
@@ -140,7 +144,7 @@ class AssignHandler extends BaseCommandHandler<void> {
 class ForWindowHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'for_window';
-  
+
   @override
   void handle(Command command, Context context) {
     final criteriaStr = command.criteria
@@ -149,11 +153,12 @@ class ForWindowHandler extends BaseCommandHandler<void> {
     final action = command.args.isNotEmpty
         ? command.args.map((v) => expandValue(v, context)).join(' ')
         : '';
-    
+
     print('🪟 Window rule: $criteriaStr -> $action');
-    
+
     // Store in context
-    final rules = context.getVariable('window_rules') as List<Map<String, String>>? ?? [];
+    final rules =
+        context.getVariable('window_rules') as List<Map<String, String>>? ?? [];
     rules.add({'criteria': criteriaStr ?? '', 'action': action});
     context.setVariable('window_rules', rules);
   }
@@ -164,13 +169,13 @@ class ForWindowHandler extends BaseCommandHandler<void> {
 class BarBlockHandler extends BaseBlockHandler {
   @override
   String get blockType => 'bar';
-  
+
   @override
   void handle(Block block, Context context) {
     final id = getBlockIdentifier(block, context);
     print('📊 Setting up bar: $id');
   }
-  
+
   @override
   void registerScopedCommands(BlockHandlerRegistry registry) {
     registry.registerCommand('status_command', StatusCommandHandler());
@@ -180,14 +185,14 @@ class BarBlockHandler extends BaseBlockHandler {
     registry.registerCommand('colors', ColorsHandler());
     registry.registerCommand('tray_output', TrayOutputHandler());
   }
-  
+
   @override
   Future<void> afterChildrenProcessed(Block block, Context context) async {
     final id = getBlockIdentifier(block, context);
     final statusCommand = context.getVariable('status_command');
     final position = context.getVariable('position');
     final height = context.getVariable('height');
-    
+
     print('📊 Bar "$id" configured:');
     print('  Status: $statusCommand');
     print('  Position: $position');
@@ -198,19 +203,19 @@ class BarBlockHandler extends BaseBlockHandler {
 class ModeBlockHandler extends BaseBlockHandler {
   @override
   String get blockType => 'mode';
-  
+
   @override
   void handle(Block block, Context context) {
     final modeName = getBlockIdentifier(block, context);
     print('🔄 Setting up mode: $modeName');
   }
-  
+
   @override
   void registerScopedCommands(BlockHandlerRegistry registry) {
     // Mode-specific bindsym commands
     registry.registerCommand('bindsym', ModeBindsymHandler());
   }
-  
+
   @override
   Future<void> afterChildrenProcessed(Block block, Context context) async {
     final modeName = getBlockIdentifier(block, context);
@@ -221,25 +226,25 @@ class ModeBlockHandler extends BaseBlockHandler {
 class AppBlockHandler extends BaseBlockHandler {
   @override
   String get blockType => 'app';
-  
+
   @override
   void handle(Block block, Context context) {
     final appName = getBlockIdentifier(block, context);
     print('📱 Configuring app: $appName');
   }
-  
+
   @override
   void registerScopedCommands(BlockHandlerRegistry registry) {
     registry.registerCommand('theme', AppThemeHandler());
     registry.registerCommand('keybindings', AppKeybindingsHandler());
     registry.registerCommand('settings', AppSettingsHandler());
   }
-  
+
   @override
   Future<void> afterChildrenProcessed(Block block, Context context) async {
     final appName = getBlockIdentifier(block, context);
     final theme = context.getVariable('theme');
-    
+
     print('📱 App "$appName" configured with theme: $theme');
   }
 }
@@ -249,7 +254,7 @@ class AppBlockHandler extends BaseBlockHandler {
 class StatusCommandHandler extends BaseCommandHandler<String> {
   @override
   String get commandName => 'status_command';
-  
+
   @override
   String? handle(Command command, Context context) {
     final statusCommand = command.getArgAsString(0, context);
@@ -262,7 +267,7 @@ class StatusCommandHandler extends BaseCommandHandler<String> {
 class PositionHandler extends BaseCommandHandler<String> {
   @override
   String get commandName => 'position';
-  
+
   @override
   String? handle(Command command, Context context) {
     final position = command.getArgAsString(0, context);
@@ -275,7 +280,7 @@ class PositionHandler extends BaseCommandHandler<String> {
 class HeightHandler extends BaseCommandHandler<int> {
   @override
   String get commandName => 'height';
-  
+
   @override
   int? handle(Command command, Context context) {
     final height = command.getArgAsInt(0, context);
@@ -288,7 +293,7 @@ class HeightHandler extends BaseCommandHandler<int> {
 class FontHandler extends BaseCommandHandler<String> {
   @override
   String get commandName => 'font';
-  
+
   @override
   String? handle(Command command, Context context) {
     final font = command.getArgAsString(0, context);
@@ -301,7 +306,7 @@ class FontHandler extends BaseCommandHandler<String> {
 class ColorsHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'colors';
-  
+
   @override
   void handle(Command command, Context context) {
     print('🎨 Processing colors block');
@@ -312,7 +317,7 @@ class ColorsHandler extends BaseCommandHandler<void> {
 class TrayOutputHandler extends BaseCommandHandler<String> {
   @override
   String get commandName => 'tray_output';
-  
+
   @override
   String? handle(Command command, Context context) {
     final output = command.getArgAsString(0, context);
@@ -325,18 +330,20 @@ class TrayOutputHandler extends BaseCommandHandler<String> {
 class ModeBindsymHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'bindsym';
-  
+
   @override
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
     final action = command.args.length > 1
         ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
         : '';
-    
+
     print('⌨️  Mode binding: $key -> $action');
-    
+
     // Store mode-specific bindings
-    final modeBindings = context.getVariable('mode_bindings') as List<Map<String, String>>? ?? [];
+    final modeBindings =
+        context.getVariable('mode_bindings') as List<Map<String, String>>? ??
+        [];
     modeBindings.add({'key': key, 'action': action});
     context.setVariable('mode_bindings', modeBindings);
   }
@@ -345,7 +352,7 @@ class ModeBindsymHandler extends BaseCommandHandler<void> {
 class AppThemeHandler extends BaseCommandHandler<String> {
   @override
   String get commandName => 'theme';
-  
+
   @override
   String? handle(Command command, Context context) {
     final theme = command.getArgAsString(0, context);
@@ -358,7 +365,7 @@ class AppThemeHandler extends BaseCommandHandler<String> {
 class AppKeybindingsHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'keybindings';
-  
+
   @override
   void handle(Command command, Context context) {
     print('⌨️  Processing app keybindings block');
@@ -369,11 +376,10 @@ class AppKeybindingsHandler extends BaseCommandHandler<void> {
 class AppSettingsHandler extends BaseCommandHandler<void> {
   @override
   String get commandName => 'settings';
-  
+
   @override
   void handle(Command command, Context context) {
     print('⚙️  Processing app settings block');
     // Settings block would be processed by its own handler
   }
 }
-

@@ -25,10 +25,7 @@ import 'package:i3config/src/value.dart'
         ValueSegmentVariableReference,
         BlockReference;
 
-String _expandInterpolatedString(
-  InterpolatedString str,
-  Context context,
-) {
+String _expandInterpolatedString(InterpolatedString str, Context context) {
   final buffer = StringBuffer();
   for (final seg in str.segments) {
     if (seg is ValueSegmentLiteral) {
@@ -168,12 +165,12 @@ class CommandProcessingState extends ProcessorState {
     BlockHandler? handler;
     final currentBlockType = processor.context.currentBlockType;
     if (currentBlockType != null) {
-      handler = processor.context.globalContext
-          .blockScopedBlockHandlers[currentBlockType]
-          ?[command.head];
+      handler = processor
+          .context
+          .globalContext
+          .blockScopedBlockHandlers[currentBlockType]?[command.head];
     }
-    handler ??=
-        processor.context.globalContext.blockHandlers[command.head];
+    handler ??= processor.context.globalContext.blockHandlers[command.head];
 
     // Process block contents with the command head as block type
     processor.pushContext();
@@ -260,7 +257,10 @@ class CommandProcessingState extends ProcessorState {
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
         if (context.reportUnresolvedVariables) {
-          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+          context.reportError(
+            'Unknown variable: \$${varRef.name}',
+            span: varRef.span,
+          );
         }
         return '\$${varRef.name}';
       case BareArg bareArg:
@@ -357,7 +357,10 @@ class AssignmentProcessingState extends ProcessorState {
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
         if (context.reportUnresolvedVariables) {
-          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+          context.reportError(
+            'Unknown variable: \$${varRef.name}',
+            span: varRef.span,
+          );
         }
         return '\$${varRef.name}';
       case BareArg bareArg:
@@ -388,9 +391,10 @@ class BlockProcessingState extends ProcessorState {
       BlockHandler? handler;
       final currentBlockType = processor.context.currentBlockType;
       if (currentBlockType != null) {
-        handler = processor.context.globalContext
-            .blockScopedBlockHandlers[currentBlockType]
-            ?[block.blockType ?? ''];
+        handler = processor
+            .context
+            .globalContext
+            .blockScopedBlockHandlers[currentBlockType]?[block.blockType ?? ''];
       }
       handler ??=
           processor.context.globalContext.blockHandlers[block.blockType ?? ''];
@@ -414,7 +418,8 @@ class BlockProcessingState extends ProcessorState {
 
     try {
       // Get handler (use override if provided, otherwise lookup by block type)
-      final handler = handlerOverride ??
+      final handler =
+          handlerOverride ??
           processor.context.globalContext.blockHandlers[block.blockType ?? ''];
 
       if (handler != null) {
@@ -462,5 +467,4 @@ class BlockProcessingState extends ProcessorState {
       processor.popContext();
     }
   }
-
 }

@@ -199,7 +199,9 @@ class Command extends Statement {
       json['head'],
       (json['args'] as List).map((a) => Value.fromJson(a)).toList(),
       json['criteria'] != null
-          ? (json['criteria'] as List).map((c) => Criterion.fromJson(c)).toList()
+          ? (json['criteria'] as List)
+                .map((c) => Criterion.fromJson(c))
+                .toList()
           : null,
       json['block'] != null ? Block.fromJson(json['block']) : null,
     );

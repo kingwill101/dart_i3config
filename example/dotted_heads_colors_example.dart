@@ -31,15 +31,16 @@ bar {
         print('  Comment: ${c.content}');
 
       case Command c:
-        final blockPart =
-            c.block != null ? ' { ... } (${c.block!.body.length} children)' : '';
-        final argsStr =
-            c.args.map((a) => a.toConfigString()).join(' ');
-        final comment =
-            c.trailingComment != null
-                ? '  ${c.trailingComment}'
-                : '';
-        print('  Command: ${c.head}${argsStr.isNotEmpty ? ' $argsStr' : ''}$blockPart$comment');
+        final blockPart = c.block != null
+            ? ' { ... } (${c.block!.body.length} children)'
+            : '';
+        final argsStr = c.args.map((a) => a.toConfigString()).join(' ');
+        final comment = c.trailingComment != null
+            ? '  ${c.trailingComment}'
+            : '';
+        print(
+          '  Command: ${c.head}${argsStr.isNotEmpty ? ' $argsStr' : ''}$blockPart$comment',
+        );
 
       case Block b:
         print('  Block: ${b.blockType} { ... } (${b.body.length} children)');
@@ -61,9 +62,8 @@ bar {
   print('Pass: ${formatted == reformatted}');
 
   print('\n=== Formatter Sorted ===');
-  final sorted =
-      ConfigFormatter(
-        options: FormatterOptions(sortAssignments: true),
-      ).format(config);
+  final sorted = ConfigFormatter(
+    options: FormatterOptions(sortAssignments: true),
+  ).format(config);
   print(sorted);
 }

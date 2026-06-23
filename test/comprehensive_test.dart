@@ -817,10 +817,7 @@ mode "resize" {
 
         // Check that we have the right mix of elements
         final commands = config.statements.whereType<Command>().toList();
-        expect(
-          commands.length,
-          7,
-        ); // 1 set + 2 bindsym + 2 assign + bar + mode
+        expect(commands.length, 7); // 1 set + 2 bindsym + 2 assign + bar + mode
 
         // Check specific commands
         expect(commands.any((c) => c.head == 'set'), isTrue);

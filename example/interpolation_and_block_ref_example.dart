@@ -113,7 +113,10 @@ class BarBlockHandler implements BlockHandler {
     for (final element in block.body) {
       if (element is Command) {
         final head = element.head;
-        if (head == 'height' || head == 'position' || head == 'status_command' || head == 'font') {
+        if (head == 'height' ||
+            head == 'position' ||
+            head == 'status_command' ||
+            head == 'font') {
           final expanded = _expandFirstArg(element, context);
           props[head] = expanded;
         }
@@ -161,7 +164,8 @@ String _expandFirstArg(Command command, Context context) {
     Quoted q => context.expandVariables(q.value),
     VariableRef vr => context.getVariable(vr.name) ?? '\$${vr.name}',
     BareArg b => context.expandVariables(b.value),
-    ArrayValue a => a.items.map((v) => _expandFirstArg(Command('', [v]), context)).join(' '),
+    ArrayValue a =>
+      a.items.map((v) => _expandFirstArg(Command('', [v]), context)).join(' '),
     InterpolatedString i => _expandInterpolatedString(i, context),
     BlockReference b => context.resolveBlockReference(b),
   };

@@ -13,7 +13,7 @@ bindsym \$mod+Shift+q kill
 set \$terminal i3-sensible-terminal
 ''';
 
-final config = Config.parse(configContent);
+  final config = Config.parse(configContent);
   print('Parsed ${config.statements.length} configuration statements\n');
 
   // Access specific statements
@@ -21,29 +21,33 @@ final config = Config.parse(configContent);
     switch (statement) {
       case Assignment assignment:
         final values = assignment.values
-            .map((value) => switch (value) {
-                  BareArg bare => bare.value,
-                  Quoted quoted => '"${quoted.value}"',
-                  VariableRef ref => '\$${ref.name}',
-                  InterpolatedString interp =>
-                    interpolatedStringDisplay(interp),
-                  ArrayValue a => a.items.map((v) => v.toString()).join(', '),
-                  BlockReference ref => ref.path.join('.'),
-                })
+            .map(
+              (value) => switch (value) {
+                BareArg bare => bare.value,
+                Quoted quoted => '"${quoted.value}"',
+                VariableRef ref => '\$${ref.name}',
+                InterpolatedString interp => interpolatedStringDisplay(interp),
+                ArrayValue a => a.items.map((v) => v.toString()).join(', '),
+                BlockReference ref => ref.path.join('.'),
+              },
+            )
             .join(' ');
-        print('Assignment → ${assignment.variable} ${assignment.operator} $values');
+        print(
+          'Assignment → ${assignment.variable} ${assignment.operator} $values',
+        );
         break;
       case Command command:
         final args = command.args
-            .map((value) => switch (value) {
-                  BareArg bare => bare.value,
-                  Quoted quoted => '"${quoted.value}"',
-                  VariableRef ref => '\$${ref.name}',
-                  InterpolatedString interp =>
-                    interpolatedStringDisplay(interp),
-                  ArrayValue a => a.items.map((v) => v.toString()).join(', '),
-                  BlockReference ref => ref.path.join('.'),
-                })
+            .map(
+              (value) => switch (value) {
+                BareArg bare => bare.value,
+                Quoted quoted => '"${quoted.value}"',
+                VariableRef ref => '\$${ref.name}',
+                InterpolatedString interp => interpolatedStringDisplay(interp),
+                ArrayValue a => a.items.map((v) => v.toString()).join(', '),
+                BlockReference ref => ref.path.join('.'),
+              },
+            )
             .join(' ');
         print('Command    → ${command.head} $args');
         break;

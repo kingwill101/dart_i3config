@@ -41,9 +41,14 @@ void main() {
       expect(interp.segments[0], isA<ValueSegmentLiteral>());
       expect(interp.segments[1], isA<ValueSegmentVariableReference>());
       expect(interp.segments[2], isA<ValueSegmentLiteral>());
-      expect((interp.segments[0] as ValueSegmentLiteral).text, equals('hello '));
-      expect((interp.segments[1] as ValueSegmentVariableReference).name,
-          equals('world'));
+      expect(
+        (interp.segments[0] as ValueSegmentLiteral).text,
+        equals('hello '),
+      );
+      expect(
+        (interp.segments[1] as ValueSegmentVariableReference).name,
+        equals('world'),
+      );
       expect((interp.segments[2] as ValueSegmentLiteral).text, equals(''));
     });
 
@@ -68,18 +73,18 @@ set \$full "base/\$dir/config"
       await processor.process(config);
 
       expect(processor.context.getVariable('dir'), equals('/home/user'));
-      expect(processor.context.getVariable('full'), equals('base//home/user/config'));
+      expect(
+        processor.context.getVariable('full'),
+        equals('base//home/user/config'),
+      );
     });
 
     test('InterpolatedString toConfigString round-trips', () {
-      final interp = InterpolatedString(
-        [
-          ValueSegmentLiteral('base/'),
-          ValueSegmentVariableReference('dir'),
-          ValueSegmentLiteral('/config'),
-        ],
-        '"',
-      );
+      final interp = InterpolatedString([
+        ValueSegmentLiteral('base/'),
+        ValueSegmentVariableReference('dir'),
+        ValueSegmentLiteral('/config'),
+      ], '"');
       expect(interp.toConfigString(), equals('"base/\$dir/config"'));
     });
 
@@ -99,8 +104,10 @@ set \$full "base/\$dir/config"
       final config = Config.parse(configContent);
       final cmd = config.statements.whereType<Command>().first;
       expect(cmd.args[1], isA<BlockReference>());
-      expect((cmd.args[1] as BlockReference).path,
-          equals(['bar', 'main', 'position']));
+      expect(
+        (cmd.args[1] as BlockReference).path,
+        equals(['bar', 'main', 'position']),
+      );
     });
 
     test('parses block reference without identifier', () {
@@ -171,13 +178,10 @@ set \$cmd bar.status_command
     });
 
     test('InterpolatedString JSON serialization round-trip', () {
-      final interp = InterpolatedString(
-        [
-          ValueSegmentLiteral('hello '),
-          ValueSegmentVariableReference('name'),
-        ],
-        '"',
-      );
+      final interp = InterpolatedString([
+        ValueSegmentLiteral('hello '),
+        ValueSegmentVariableReference('name'),
+      ], '"');
       final json = interp.toJson();
       final restored = InterpolatedString.fromJson(json);
       expect(restored.segments.length, equals(2));

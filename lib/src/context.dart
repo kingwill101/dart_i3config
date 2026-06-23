@@ -149,7 +149,9 @@ class Context {
     String? identifier,
     Map<String, dynamic> properties,
   ) {
-    blockRegistry.putIfAbsent(blockType, () => {})[identifier] = Map.from(properties);
+    blockRegistry.putIfAbsent(blockType, () => {})[identifier] = Map.from(
+      properties,
+    );
   }
 
   /// Resolve a [BlockReference] against the block registry.
@@ -163,7 +165,10 @@ class Context {
     final typeEntries = blockRegistry[blockType];
     if (typeEntries == null || typeEntries.isEmpty) {
       if (reportUnresolvedBlockReferences) {
-        reportError('Unknown block reference: ${ref.toConfigString()}', span: ref.span);
+        reportError(
+          'Unknown block reference: ${ref.toConfigString()}',
+          span: ref.span,
+        );
       }
       return '';
     }
@@ -187,7 +192,10 @@ class Context {
       final blockProps = typeEntries[identifier];
       if (blockProps == null) {
         if (reportUnresolvedBlockReferences) {
-          reportError('Unknown block identifier: ${ref.toConfigString()}', span: ref.span);
+          reportError(
+            'Unknown block identifier: ${ref.toConfigString()}',
+            span: ref.span,
+          );
         }
         return '';
       }
@@ -198,13 +206,19 @@ class Context {
           current = current[prop];
         } else {
           if (reportUnresolvedBlockReferences) {
-            reportError('Unknown block property: ${ref.toConfigString()}', span: ref.span);
+            reportError(
+              'Unknown block property: ${ref.toConfigString()}',
+              span: ref.span,
+            );
           }
           return '';
         }
         if (current == null) {
           if (reportUnresolvedBlockReferences) {
-            reportError('Unknown block property: ${ref.toConfigString()}', span: ref.span);
+            reportError(
+              'Unknown block property: ${ref.toConfigString()}',
+              span: ref.span,
+            );
           }
           return '';
         }
@@ -228,7 +242,10 @@ class Context {
     }
 
     if (reportUnresolvedBlockReferences) {
-      reportError('Unknown block reference: ${ref.toConfigString()}', span: ref.span);
+      reportError(
+        'Unknown block reference: ${ref.toConfigString()}',
+        span: ref.span,
+      );
     }
     return '';
   }

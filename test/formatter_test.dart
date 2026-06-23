@@ -18,7 +18,10 @@ bar {
 
       expect(output, contains('# Set mod key'));
       expect(output, contains('set \$mod Mod4'));
-      expect(output, contains('bindsym \$mod+Return exec i3-sensible-terminal'));
+      expect(
+        output,
+        contains('bindsym \$mod+Return exec i3-sensible-terminal'),
+      );
       expect(output, contains('bar {'));
       expect(output, contains('  status_command i3status'));
       expect(output, contains('}'));
@@ -46,7 +49,10 @@ bindsym \$mod+1 focus
       final formatter = ConfigFormatter();
       final output = formatter.format(config);
 
-      expect(output, contains('for_window [class="Firefox"] move to workspace 2'));
+      expect(
+        output,
+        contains('for_window [class="Firefox"] move to workspace 2'),
+      );
     });
 
     test('uses custom indent', () {
@@ -81,15 +87,20 @@ bar {
       );
       final output = formatter.format(config);
 
-      final lines = output.split('\n').where((l) => l.trim().isNotEmpty).toList();
+      final lines = output
+          .split('\n')
+          .where((l) => l.trim().isNotEmpty)
+          .toList();
 
-      final topLevelAssignments =
-          lines.where((l) => l.startsWith('alpha') || l.startsWith('zebra')).toList();
+      final topLevelAssignments = lines
+          .where((l) => l.startsWith('alpha') || l.startsWith('zebra'))
+          .toList();
       expect(topLevelAssignments[0], 'alpha = v1');
       expect(topLevelAssignments[1], 'zebra = v2');
 
-      final barAssignments =
-          lines.where((l) => l.startsWith('  delta') || l.startsWith('  gamma')).toList();
+      final barAssignments = lines
+          .where((l) => l.startsWith('  delta') || l.startsWith('  gamma'))
+          .toList();
       expect(barAssignments[0], '  delta = z');
       expect(barAssignments[1], '  gamma = m');
     });
@@ -145,9 +156,7 @@ set \$mod Mod4
 bindsym \$mod+Return exec terminal
 ''');
 
-      final formatter = ConfigFormatter(
-        options: FormatterOptions(indent: 4),
-      );
+      final formatter = ConfigFormatter(options: FormatterOptions(indent: 4));
       final first = formatter.format(config);
       final second = formatter.format(Config.parse(first));
 

@@ -33,7 +33,10 @@ abstract class BaseCommandHandler<T> implements CommandHandler {
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
         if (context.reportUnresolvedVariables) {
-          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+          context.reportError(
+            'Unknown variable: \$${varRef.name}',
+            span: varRef.span,
+          );
         }
         return '\$${varRef.name}';
       case BareArg bareArg:
@@ -47,10 +50,7 @@ abstract class BaseCommandHandler<T> implements CommandHandler {
     }
   }
 
-  String _expandInterpolatedString(
-    InterpolatedString str,
-    Context context,
-  ) {
+  String _expandInterpolatedString(InterpolatedString str, Context context) {
     final buffer = StringBuffer();
     for (final seg in str.segments) {
       if (seg is ValueSegmentLiteral) {
@@ -194,7 +194,10 @@ abstract class BaseBlockHandler implements BlockHandler {
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
         if (context.reportUnresolvedVariables) {
-          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+          context.reportError(
+            'Unknown variable: \$${varRef.name}',
+            span: varRef.span,
+          );
         }
         return '\$${varRef.name}';
       case BareArg bareArg:
@@ -208,10 +211,7 @@ abstract class BaseBlockHandler implements BlockHandler {
     }
   }
 
-  String _expandInterpolatedString(
-    InterpolatedString str,
-    Context context,
-  ) {
+  String _expandInterpolatedString(InterpolatedString str, Context context) {
     final buffer = StringBuffer();
     for (final seg in str.segments) {
       if (seg is ValueSegmentLiteral) {
@@ -325,7 +325,10 @@ extension CommandValueExtraction on Command {
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
         if (context.reportUnresolvedVariables) {
-          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+          context.reportError(
+            'Unknown variable: \$${varRef.name}',
+            span: varRef.span,
+          );
         }
         return '\$${varRef.name}';
       case BareArg bareArg:
@@ -339,10 +342,7 @@ extension CommandValueExtraction on Command {
     }
   }
 
-  String _expandInterpolatedString(
-    InterpolatedString str,
-    Context context,
-  ) {
+  String _expandInterpolatedString(InterpolatedString str, Context context) {
     final buffer = StringBuffer();
     for (final seg in str.segments) {
       if (seg is ValueSegmentLiteral) {

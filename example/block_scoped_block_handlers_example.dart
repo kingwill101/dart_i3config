@@ -92,9 +92,9 @@ class CopyBlockHandler extends BaseBlockHandler {
   Future<void> afterChildrenProcessed(Block block, Context context) async {
     final target = context.getVariable('copy_target');
     final owner = context.getVariable('copy_owner');
-    final hasBackup = block.body
-        .whereType<Command>()
-        .any((c) => c.block?.blockType == 'backup');
+    final hasBackup = block.body.whereType<Command>().any(
+      (c) => c.block?.blockType == 'backup',
+    );
     print('  Copy summary: target=$target, owner=$owner, backup=$hasBackup');
   }
 }

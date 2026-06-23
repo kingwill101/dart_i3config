@@ -122,9 +122,7 @@ class CustomExecHandler implements CommandHandler {
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
       case ArrayValue array:
-        return array.items
-            .map((v) => _expandValue(v, context))
-            .join(', ');
+        return array.items.map((v) => _expandValue(v, context)).join(', ');
       case InterpolatedString interpolated:
         final buffer = StringBuffer();
         for (final seg in interpolated.segments) {

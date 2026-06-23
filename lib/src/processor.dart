@@ -24,7 +24,7 @@ class ConfigProcessor implements BlockHandlerRegistry {
   /// Defaults to [PhysicalFileSystem] for real I/O.
   /// Pass a [VirtualFileSystem] for testing.
   ConfigProcessor({FileSystem? fileSystem})
-      : fileSystem = fileSystem ?? const PhysicalFileSystem() {
+    : fileSystem = fileSystem ?? const PhysicalFileSystem() {
     _registerBuiltinHandlers();
   }
 

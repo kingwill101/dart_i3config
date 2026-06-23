@@ -28,10 +28,10 @@ order += eraser
 ''';
 
   final config = Config.parse(configContent);
-  
+
   print('📋 Configuration Elements:');
   print('=' * 50);
-  
+
   for (final element in config.statements) {
     switch (element) {
       case Command command when command.block != null:
@@ -84,15 +84,15 @@ order += eraser
         break;
     }
   }
-  
+
   print('\n🔍 Finding Specific Elements:');
   print('=' * 50);
-  
+
   // Find all set commands
-  final setCommands = config.statements
-      .whereType<Command>()
-      .where((c) => c.head == 'set');
-  
+  final setCommands = config.statements.whereType<Command>().where(
+    (c) => c.head == 'set',
+  );
+
   print('📋 Set Commands:');
   for (final cmd in setCommands) {
     if (cmd.args.length >= 2) {
@@ -103,12 +103,12 @@ order += eraser
       }
     }
   }
-  
+
   // Find all key bindings
-  final bindsymCommands = config.statements
-      .whereType<Command>()
-      .where((c) => c.head == 'bindsym');
-  
+  final bindsymCommands = config.statements.whereType<Command>().where(
+    (c) => c.head == 'bindsym',
+  );
+
   print('\n⌨️  Key Bindings:');
   for (final cmd in bindsymCommands) {
     if (cmd.args.length >= 2) {
@@ -119,15 +119,17 @@ order += eraser
       }
     }
   }
-  
+
   // Find all assignments
   final assignments = config.statements.whereType<Assignment>();
-  
+
   print('\n📊 Assignments:');
   for (final assignment in assignments) {
-    print('  ${assignment.variable} ${assignment.operator} ${assignment.values.map((v) => v is BareArg ? v.value : v.toString()).join(' ')}');
+    print(
+      '  ${assignment.variable} ${assignment.operator} ${assignment.values.map((v) => v is BareArg ? v.value : v.toString()).join(' ')}',
+    );
   }
-  
+
   print('\n✅ Benefits of this approach:');
   print('• V2\'s improved parser without state machine complexity');
   print('• Direct control over element processing');

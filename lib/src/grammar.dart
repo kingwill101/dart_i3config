@@ -189,7 +189,9 @@ List<ValueSegment> _splitInterpolation(String raw) {
     }
     final varMatch = _varNamePattern.matchAsPrefix(raw, pos + 1);
     if (varMatch != null) {
-      segments.add(ValueSegmentVariableReference(raw.substring(pos + 1, varMatch.end)));
+      segments.add(
+        ValueSegmentVariableReference(raw.substring(pos + 1, varMatch.end)),
+      );
       segments.add(ValueSegmentLiteral(''));
       lastEnd = varMatch.end;
     } else {
@@ -215,38 +217,51 @@ Parser<String> sqChar() => pattern("^'\\\\\r\n");
 Parser<Value> dqString() => position()
     .seq(
       (char('"') &
-          (dqChar() | escapeSeq()).star() &
-          _orError(char('"'), "closing double quote")).flatten(),
+              (dqChar() | escapeSeq()).star() &
+              _orError(char('"'), "closing double quote"))
+          .flatten(),
     )
     .seq(position())
-    .map(
-      (vals) {
-        final full = vals[1] as String;
-        final raw = full.substring(1, full.length - 1);
+    .map((vals) {
+      final full = vals[1] as String;
+      final raw = full.substring(1, full.length - 1);
 
-        final segments = _splitInterpolation(raw);
-        final hasVar =
-            segments.any((s) => s is ValueSegmentVariableReference);
-        final spanStart = vals[0] as int;
-        final spanEnd = vals[2] as int;
+      final segments = _splitInterpolation(raw);
+      final hasVar = segments.any((s) => s is ValueSegmentVariableReference);
+      final spanStart = vals[0] as int;
+      final spanEnd = vals[2] as int;
 
-        if (!hasVar) {
-          final text =
-              segments.whereType<ValueSegmentLiteral>().map((s) => s.text).join();
-          return _annotate(Quoted(_processEscapeSequences(text), '"'), spanStart, spanEnd);
-        }
-
-        final processed = segments
-            .map((s) => s is ValueSegmentLiteral
-                ? ValueSegmentLiteral(_processEscapeSequences(s.text))
-                : s);
+      if (!hasVar) {
+        final text = segments
+            .whereType<ValueSegmentLiteral>()
+            .map((s) => s.text)
+            .join();
         return _annotate(
-            InterpolatedString(processed.toList(), '"'), spanStart, spanEnd);
-      },
-    );
+          Quoted(_processEscapeSequences(text), '"'),
+          spanStart,
+          spanEnd,
+        );
+      }
+
+      final processed = segments.map(
+        (s) => s is ValueSegmentLiteral
+            ? ValueSegmentLiteral(_processEscapeSequences(s.text))
+            : s,
+      );
+      return _annotate(
+        InterpolatedString(processed.toList(), '"'),
+        spanStart,
+        spanEnd,
+      );
+    });
 
 Parser<Quoted> sqString() => position()
-    .seq((char("'") & (sqChar() | escapeSeq()).star() & _orError(char("'"), "closing single quote")).flatten())
+    .seq(
+      (char("'") &
+              (sqChar() | escapeSeq()).star() &
+              _orError(char("'"), "closing single quote"))
+          .flatten(),
+    )
     .seq(position())
     .map(
       (vals) => _annotate(
@@ -360,9 +375,7 @@ Parser<BlockReference> blockReference() =>
 // ===== Hex Colors =====
 
 Parser<BareArg> hexColor() => position()
-    .seq(
-      (char('#') & pattern('0-9a-fA-F').plus()).flatten(),
-    )
+    .seq((char('#') & pattern('0-9a-fA-F').plus()).flatten())
     .seq(position())
     .map(
       (vals) =>
@@ -371,10 +384,20 @@ Parser<BareArg> hexColor() => position()
 
 // ===== Values =====
 
-  Parser<ArrayValue> arrayLiteral() => position()
-    .seq(char('[') & wsOrNl().optional() &
-        (_arrayValue() & (wsOrNl().optional() & char(',') & wsOrNl().optional() & _arrayValue()).star()).optional() &
-        wsOrNl().optional() & _orError(char(']'), "closing bracket ']'"))
+Parser<ArrayValue> arrayLiteral() => position()
+    .seq(
+      char('[') &
+          wsOrNl().optional() &
+          (_arrayValue() &
+                  (wsOrNl().optional() &
+                          char(',') &
+                          wsOrNl().optional() &
+                          _arrayValue())
+                      .star())
+              .optional() &
+          wsOrNl().optional() &
+          _orError(char(']'), "closing bracket ']'"),
+    )
     .seq(position())
     .map((vals) {
       final parts = vals[1] as List;
@@ -390,21 +413,35 @@ Parser<BareArg> hexColor() => position()
       return _annotate(ArrayValue(values), vals[0] as int, vals[2] as int);
     });
 
-  Parser _arrayValue() {
-    if (!_arrayValueInitialized) {
-      _arrayValueInitialized = true;
-      _arrayValueParser.set(hexColor() | blockReference() | quotedString() | variableRef() | arrayLiteral() | _arrayBareArg());
-    }
-    return _arrayValueParser;
+Parser _arrayValue() {
+  if (!_arrayValueInitialized) {
+    _arrayValueInitialized = true;
+    _arrayValueParser.set(
+      hexColor() |
+          blockReference() |
+          quotedString() |
+          variableRef() |
+          arrayLiteral() |
+          _arrayBareArg(),
+    );
   }
+  return _arrayValueParser;
+}
 
-  Parser value() {
-    if (!_valueInitialized) {
-      _valueInitialized = true;
-      _valueParser.set(hexColor() | blockReference() | quotedString() | variableRef() | arrayLiteral() | bareArg());
-    }
-    return _valueParser;
+Parser value() {
+  if (!_valueInitialized) {
+    _valueInitialized = true;
+    _valueParser.set(
+      hexColor() |
+          blockReference() |
+          quotedString() |
+          variableRef() |
+          arrayLiteral() |
+          bareArg(),
+    );
   }
+  return _valueParser;
+}
 
 // ===== Dotted identifiers for assignments =====
 
@@ -421,8 +458,10 @@ Parser<String> dottedIdent() =>
 
 Parser<String> lhs() => dottedIdent();
 
-Parser<String> assignOp() =>
-    _orError((string('+=') | char('=')).flatten(), "assignment operator '=' or '+='");
+Parser<String> assignOp() => _orError(
+  (string('+=') | char('=')).flatten(),
+  "assignment operator '=' or '+='",
+);
 
 Parser<List<Value>> rhsList() =>
     (value() & (ws() & value()).star()).map((parts) {
@@ -667,7 +706,8 @@ Parser statement() =>
 Parser<Config> configParser() => position()
     .seq(
       wsOrNl().optional() &
-          ((comment() | _statementWithTrailing()) & wsOrNl().optional()).star() &
+          ((comment() | _statementWithTrailing()) & wsOrNl().optional())
+              .star() &
           wsOrNl().optional(),
     )
     .seq(position())
@@ -725,8 +765,11 @@ class Grammar {
       // Map the failure position from processed content back to original content.
       // We build a cumulative offset map by re-running both preprocessing steps
       // to determine how many characters were removed before `position`.
-      final origPos =
-          _mapProcessedToOriginal(content, position, lineContinuationProcessed);
+      final origPos = _mapProcessedToOriginal(
+        content,
+        position,
+        lineContinuationProcessed,
+      );
       final lines = content.substring(0, origPos).split('\n');
       final line = lines.length;
       final column = lines.last.length + 1;
@@ -742,7 +785,10 @@ class Grammar {
     String afterContinuation,
   ) {
     // First, map processedPos through blank-line removal (step 2)
-    final blankLinesBefore = _countRemovedBlankLines(afterContinuation, processedPos);
+    final blankLinesBefore = _countRemovedBlankLines(
+      afterContinuation,
+      processedPos,
+    );
     final afterBlankRemoval = processedPos + blankLinesBefore;
 
     // Then, map through line-continuation joining (step 1)
@@ -785,7 +831,8 @@ class Grammar {
         // Skip the next line (already joined)
         if (i + 1 < lines.length) {
           i++; // Will be incremented again by loop
-          originalOffset += lines[i].length + 1; // Consume skipped line + newline
+          originalOffset +=
+              lines[i].length + 1; // Consume skipped line + newline
         }
       } else {
         // Normal line
@@ -800,7 +847,11 @@ class Grammar {
   }
 
   /// Generate a contextual error message when PetitParser's default message is generic.
-  String _contextualMessage(String content, int position, String originalMessage) {
+  String _contextualMessage(
+    String content,
+    int position,
+    String originalMessage,
+  ) {
     if (position < content.length) {
       final char = content[position];
       switch (char) {

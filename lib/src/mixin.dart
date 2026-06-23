@@ -16,7 +16,10 @@ mixin ValueExpander {
         final resolved = context.getVariable(varRef.name);
         if (resolved != null) return resolved;
         if (context.reportUnresolvedVariables) {
-            context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+          context.reportError(
+            'Unknown variable: \$${varRef.name}',
+            span: varRef.span,
+          );
         }
         return '\$${varRef.name}';
       case BareArg bareArg:
@@ -30,10 +33,7 @@ mixin ValueExpander {
     }
   }
 
-  String _expandInterpolatedString(
-    InterpolatedString str,
-    Context context,
-  ) {
+  String _expandInterpolatedString(InterpolatedString str, Context context) {
     final buffer = StringBuffer();
     for (final seg in str.segments) {
       if (seg is ValueSegmentLiteral) {

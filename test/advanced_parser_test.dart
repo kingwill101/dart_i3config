@@ -288,7 +288,10 @@ bar {
       final setCmd = parsed.statements.first as Command;
       final arr = setCmd.args[1] as ArrayValue;
       expect(arr.items, hasLength(3));
-      expect(arr.items.map((v) => (v as BareArg).value), equals(['a', 'b', 'c']));
+      expect(
+        arr.items.map((v) => (v as BareArg).value),
+        equals(['a', 'b', 'c']),
+      );
     });
 
     test('parses array with whitespace', () {
@@ -296,7 +299,10 @@ bar {
       final parsed = Config.parse('$config\n');
       final setCmd = parsed.statements.first as Command;
       final arr = setCmd.args[1] as ArrayValue;
-      expect(arr.items.map((v) => (v as BareArg).value), equals(['a', 'b', 'c']));
+      expect(
+        arr.items.map((v) => (v as BareArg).value),
+        equals(['a', 'b', 'c']),
+      );
     });
 
     test('parses array with mixed value types', () {

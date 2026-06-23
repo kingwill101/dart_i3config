@@ -23,9 +23,10 @@ alpha {
       expect(betaHandler.invoked, isTrue);
     });
 
-    test('via registerScopedCommands should invoke handler for nested block',
-        () async {
-      final config = Config.parse('''
+    test(
+      'via registerScopedCommands should invoke handler for nested block',
+      () async {
+        final config = Config.parse('''
 parent {
     child {
         key value
@@ -33,16 +34,17 @@ parent {
 }
 ''');
 
-      final processor = ConfigProcessor();
-      final childHandler = _TrackingHandler('child');
-      final parentHandler = _ScopedRegistrar('parent', childHandler);
+        final processor = ConfigProcessor();
+        final childHandler = _TrackingHandler('child');
+        final parentHandler = _ScopedRegistrar('parent', childHandler);
 
-      processor.registerBlockHandler(parentHandler);
+        processor.registerBlockHandler(parentHandler);
 
-      await processor.process(config);
+        await processor.process(config);
 
-      expect(childHandler.invoked, isTrue);
-    });
+        expect(childHandler.invoked, isTrue);
+      },
+    );
 
     test('should register multiple scoped block handlers', () async {
       final config = Config.parse('''
@@ -59,10 +61,7 @@ multi {
       final processor = ConfigProcessor();
       final handlerA = _TrackingHandler('sub_a');
       final handlerB = _TrackingHandler('sub_b');
-      final multiHandler = _MultiScopedRegistrar('multi', [
-        handlerA,
-        handlerB,
-      ]);
+      final multiHandler = _MultiScopedRegistrar('multi', [handlerA, handlerB]);
 
       processor.registerBlockHandler(multiHandler);
 
@@ -121,18 +120,20 @@ wrapper {
       expect(globalHandler.invoked, isTrue);
     });
 
-    test('should fall through to default processing when no handler at all',
-        () async {
-      final config = Config.parse('''
+    test(
+      'should fall through to default processing when no handler at all',
+      () async {
+        final config = Config.parse('''
 unknown_block {
     some_command arg
 }
 ''');
 
-      final processor = ConfigProcessor();
+        final processor = ConfigProcessor();
 
-      await expectLater(processor.process(config), completes);
-    });
+        await expectLater(processor.process(config), completes);
+      },
+    );
   });
 
   group('Scope Isolation', () {
@@ -153,9 +154,7 @@ wrapper {
       final scopedInner = _TrackingHandler('child');
 
       processor.registerBlockHandler(globalInner);
-      processor.registerBlockHandler(
-        _ScopedRegistrar('wrapper', scopedInner),
-      );
+      processor.registerBlockHandler(_ScopedRegistrar('wrapper', scopedInner));
 
       await processor.process(config);
 
@@ -330,10 +329,7 @@ class _ScopedRegistrar with DefaultChildProcessing implements BlockHandler {
   @override
   void registerScopedCommands(BlockHandlerRegistry registry) {
     if (_scopedChild != null) {
-      registry.registerScopedBlockHandler(
-        _scopedChild.blockType,
-        _scopedChild,
-      );
+      registry.registerScopedBlockHandler(_scopedChild.blockType, _scopedChild);
     }
   }
 

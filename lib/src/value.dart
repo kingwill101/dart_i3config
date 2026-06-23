@@ -57,8 +57,9 @@ class ArrayValue extends Value {
     'items': items.map((v) => v.toJson()).toList(),
   };
 
-  factory ArrayValue.fromJson(Map<String, dynamic> json) =>
-      ArrayValue((json['items'] as List).map((v) => Value.fromJson(v)).toList());
+  factory ArrayValue.fromJson(Map<String, dynamic> json) => ArrayValue(
+    (json['items'] as List).map((v) => Value.fromJson(v)).toList(),
+  );
 }
 
 /// Quoted string value
