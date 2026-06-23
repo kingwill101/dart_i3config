@@ -1,6 +1,6 @@
 import 'package:i3config/i3config_v2.dart';
 
-Future<void> main() {
+Future<void> main() async {
   final configContent = '''
 # Font configuration
 font pango:monospace 10

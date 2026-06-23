@@ -506,7 +506,13 @@ class ConditionalBlockHandler implements BlockHandler {
             BareArg a => a.value,
             Quoted q => q.value,
             VariableRef v => '\$${v.name}',
+            InterpolatedString i => i.segments.map((s) {
+              if (s is ValueSegmentLiteral) return s.text;
+              if (s is ValueSegmentVariableReference) return '\$${s.name}';
+              return s.toString();
+            }).join(''),
             ArrayValue a => a.items.map((v) => v.toString()).join(', '),
+            BlockReference r => r.path.join('.'),
           };
           print('   ❌ Skipping disabled: $featureName');
           // Intentionally NOT processing disabled features

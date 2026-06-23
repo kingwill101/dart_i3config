@@ -25,7 +25,10 @@ final config = Config.parse(configContent);
                   BareArg bare => bare.value,
                   Quoted quoted => '"${quoted.value}"',
                   VariableRef ref => '\$${ref.name}',
+                  InterpolatedString interp =>
+                    interpolatedStringDisplay(interp),
                   ArrayValue a => a.items.map((v) => v.toString()).join(', '),
+                  BlockReference ref => ref.path.join('.'),
                 })
             .join(' ');
         print('Assignment → ${assignment.variable} ${assignment.operator} $values');
@@ -36,7 +39,10 @@ final config = Config.parse(configContent);
                   BareArg bare => bare.value,
                   Quoted quoted => '"${quoted.value}"',
                   VariableRef ref => '\$${ref.name}',
+                  InterpolatedString interp =>
+                    interpolatedStringDisplay(interp),
                   ArrayValue a => a.items.map((v) => v.toString()).join(', '),
+                  BlockReference ref => ref.path.join('.'),
                 })
             .join(' ');
         print('Command    → ${command.head} $args');
@@ -53,4 +59,13 @@ final config = Config.parse(configContent);
   // Quick access to all assignments using the new API
   final assignments = config.statements.whereType<Assignment>().toList();
   print('\nFound ${assignments.length} assignment statement(s).');
+}
+
+String interpolatedStringDisplay(InterpolatedString interp) {
+  final parts = interp.segments.map((seg) {
+    if (seg is ValueSegmentLiteral) return seg.text;
+    if (seg is ValueSegmentVariableReference) return '\$${seg.name}';
+    return seg.toString();
+  }).toList();
+  return '"${parts.join('')}"';
 }

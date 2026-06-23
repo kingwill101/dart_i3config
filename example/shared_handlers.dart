@@ -6,6 +6,7 @@
 library;
 
 import 'package:i3config/i3config_v2.dart';
+import 'package:source_span/source_span.dart';
 
 // ============================================================================
 // Bindsym Handler
@@ -141,8 +142,8 @@ class ModeBindsymHandler with ValueExpander implements CommandHandler {
 
 class DefaultErrorHandler implements ErrorHandler {
   @override
-  void handleError(dynamic error, Context context) {
-    print('Processing error: $error');
+  void handleError(String message, Context context, {SourceSpan? span}) {
+    print('Processing error: $message');
   }
 }
 
@@ -286,6 +287,8 @@ class ConfigValidatorVisitor implements ConfigVisitor<List<String>> {
         if (array.items.isEmpty) {
           _errors.add('Array is empty');
         }
+      default:
+        break;
     }
     return _errors;
   }

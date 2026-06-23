@@ -125,6 +125,19 @@ class CustomExecHandler implements CommandHandler {
         return array.items
             .map((v) => _expandValue(v, context))
             .join(', ');
+      case InterpolatedString interpolated:
+        final buffer = StringBuffer();
+        for (final seg in interpolated.segments) {
+          if (seg is ValueSegmentLiteral) {
+            buffer.write(seg.text);
+          } else if (seg is ValueSegmentVariableReference) {
+            final resolved = context.getVariable(seg.name);
+            buffer.write(resolved ?? '\$${seg.name}');
+          }
+        }
+        return buffer.toString();
+      case BlockReference blockRef:
+        return context.resolveBlockReference(blockRef);
     }
   }
 }

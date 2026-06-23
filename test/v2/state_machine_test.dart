@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:i3config/i3config_v2.dart';
+import 'package:source_span/source_span.dart';
 import 'test_handlers.dart';
 
 void main() {
@@ -245,8 +246,8 @@ class _TestErrorHandler implements ErrorHandler {
   _TestErrorHandler(this.errors);
 
   @override
-  void handleError(dynamic error, Context context) {
-    errors.add(error.toString());
+  void handleError(String message, Context context, {SourceSpan? span}) {
+    errors.add(message);
   }
 }
 

@@ -3,6 +3,7 @@
 library;
 
 import 'package:i3config/i3config_v2.dart';
+import 'package:source_span/source_span.dart';
 
 // ============================================================================
 // EXAMPLE HANDLERS FOR TESTING
@@ -132,8 +133,8 @@ class ModeBindsymHandler with ValueExpander implements CommandHandler {
 /// Example error handler for testing.
 class DefaultErrorHandler implements ErrorHandler {
   @override
-  void handleError(dynamic error, Context context) {
-    print('Processing error: $error');
+  void handleError(String message, Context context, {SourceSpan? span}) {
+    print('Processing error: $message');
   }
 }
 
@@ -301,6 +302,16 @@ class ConfigValidatorVisitor implements ConfigVisitor<List<String>> {
       case ArrayValue array:
         if (array.items.isEmpty) {
           _errors.add('Array is empty');
+        }
+        break;
+      case InterpolatedString interpolated:
+        if (interpolated.segments.isEmpty) {
+          _errors.add('Interpolated string is empty');
+        }
+        break;
+      case BlockReference blockRef:
+        if (blockRef.path.isEmpty) {
+          _errors.add('Block reference path is empty');
         }
         break;
     }
