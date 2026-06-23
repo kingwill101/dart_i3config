@@ -1,6 +1,6 @@
-# V2 API Reference
+# API Reference
 
-Complete API reference for i3conf V2.
+Complete API reference for i3conf.
 
 ## Core Classes
 

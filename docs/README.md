@@ -8,7 +8,6 @@ This directory contains comprehensive documentation for the i3conf library.
 - **[Command Handlers](command-handlers.md)** - Processing individual commands
 - **[Context and Scoping](context-and-scoping.md)** - Variable management and inheritance
 - **[Configuration Examples](configuration-examples.md)** - Real-world config to handler mapping
-- **[Migration Guide](migration.md)** - Upgrading from V1 to V2 (V1 removed in 2.4.0)
 
 ---
 
@@ -73,21 +72,16 @@ Config → Parser → AST → State Machine → Handlers → Context
 
 ## Core Concepts
 
-### Simplified AST Types
-V2 uses a simplified AST structure (5 types vs V1's 6 types):
-- **ConfigElement** (sealed): Base for all elements
-  - **Config**: Root container with statements
-  - **Statement** (sealed): Base for all statements
-    - **Assignment**: `variable = value` or `variable += value` (replaces Property + ArrayElement)
-    - **Block**: `block_type { }` with body (replaces Section)
-    - **Command**: Raw commands like `bindsym`, `set`
-  - **Comment**: `# comments` (replaces Comment + CommentBlock)
+### AST Types
 
-**Benefits of Simplification:**
-- Fewer types to handle in pattern matching
-- Cleaner, more intuitive API
-- Better type safety with sealed classes
-- Easier migration from V1
+The AST uses a sealed class hierarchy:
+
+- **Config**: Root container with statements
+- **Statement** (sealed): Base for all statements
+  - **Command**: Raw commands like `bindsym`, `set`
+  - **Assignment**: `variable = value` or `variable += value`
+  - **Block**: `block_type { }` with body
+- **Comment**: `# comments`
 
 ### State Machine
 The processing pipeline uses different states:
@@ -110,14 +104,14 @@ Hierarchical variable and option management:
 - **Variable Expansion**: Dynamic resolution with inheritance
 
 ### File Imports
-The V2 processor can execute `include` commands while processing a configuration. `Config.parse` still only builds the AST; file imports are resolved when you call `ConfigProcessor.process` or `processString`.
+The processor can execute `include` commands while processing a configuration. `Config.parse` still only builds the AST; file imports are resolved when you call `ConfigProcessor.process` or `processString`.
 
 ```i3
 include "modules/bar.conf"
 include "$config_dir/colors.conf"
 ```
 
-The built-in `IncludeHandler` is registered automatically by `ConfigProcessor`. It reads the included file, parses it as V2 configuration, and processes it in place, so variables and commands from the included file become part of the current processing context.
+The built-in `IncludeHandler` is registered automatically by `ConfigProcessor`. It reads the included file, parses it as a configuration, and processes it in place, so variables and commands from the included file become part of the current processing context.
 
 File imports support:
 - Relative and absolute paths
@@ -343,7 +337,7 @@ for (final statement in config.statements) {
 }
 ```
 
-## When to Use V2
+### Choosing the Right Approach
 
 - Building configuration management tools
 - Need advanced processing capabilities
@@ -352,10 +346,6 @@ for (final statement in config.statements) {
 - Building on top of i3 configuration
 - Need async processing support
 
-## Migration from V1
-
-See [Migration Guide](migration.md) for detailed upgrade instructions.
-
 ## Advanced Topics
 
 - [Language Guide](language-guide.md) - i3 config syntax and library usage
@@ -363,6 +353,5 @@ See [Migration Guide](migration.md) for detailed upgrade instructions.
 - [Block Handlers](block-handlers.md) - Processing block types and scoped commands
 - [Context and Scoping](context-and-scoping.md) - Variable management and inheritance
 - [Configuration Examples](configuration-examples.md) - Real-world config to handler mapping
-- [Simple AST Iteration](simple-ast-iteration.md) - Using V2 parser without state machine
-- [Migration Guide](migration.md) - Upgrading from V1 to V2
-- [API Reference](api-reference.md) - Complete V2 API documentation
+- [Simple AST Iteration](simple-ast-iteration.md) - Using parser without state machine
+- [API Reference](api-reference.md) - Complete API documentation

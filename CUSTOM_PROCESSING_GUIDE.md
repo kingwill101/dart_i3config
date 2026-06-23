@@ -14,14 +14,14 @@ Block handlers can control how their child elements are processed by overriding 
 
 ```dart
 abstract class BlockHandler {
-  FutureOr<void> handle(Block block, ProcessingContext context);
+  FutureOr<void> handle(Block block, Context context);
   String get blockType;
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   /// Override to customize child processing.
   /// Return null (default) for automatic sequential processing.
   /// Return non-null to take manual control.
-  FutureOr<void>? processChildren(Block block, ProcessingContext context);
+  FutureOr<void>? processChildren(Block block, Context context);
 }
 ```
 
@@ -42,7 +42,7 @@ class MyBlockHandler with DefaultChildProcessing implements BlockHandler {
   }
   
   @override
-  void handle(Block block, ProcessingContext context) {
+  void handle(Block block, Context context) {
     // Setup logic here
     // Children are AUTOMATICALLY processed sequentially after this
   }
@@ -64,12 +64,12 @@ class FilteringBlockHandler implements BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   @override
-  void handle(Block block, ProcessingContext context) {
+  void handle(Block block, Context context) {
     // Setup logic here
   }
   
   @override
-  Future<void> processChildren(Block block, ProcessingContext context) async {
+  Future<void> processChildren(Block block, Context context) async {
     // Custom processing: filter children
     for (final element in block.body) {
       if (shouldProcess(element)) {
@@ -106,12 +106,12 @@ class ConditionalBlockHandler implements BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   @override
-  void handle(Block block, ProcessingContext context) {
+  void handle(Block block, Context context) {
     // Setup logic
   }
   
   @override
-  Future<void> processChildren(Block block, ProcessingContext context) async {
+  Future<void> processChildren(Block block, Context context) async {
     for (final element in block.body) {
       if (element is Command && element.head == 'enabled_feature') {
         // Process this one
@@ -147,12 +147,12 @@ class ReverseBlockHandler implements BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   @override
-  void handle(Block block, ProcessingContext context) {
+  void handle(Block block, Context context) {
     // Setup logic
   }
   
   @override
-  void processChildren(Block block, ProcessingContext context) {
+  void processChildren(Block block, Context context) {
     for (final element in block.body.reversed) {
       processElement(element, context);
     }
@@ -182,12 +182,12 @@ class MultiPassHandler implements BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   @override
-  void handle(Block block, ProcessingContext context) {
+  void handle(Block block, Context context) {
     // Setup logic
   }
   
   @override
-  void processChildren(Block block, ProcessingContext context) {
+  void processChildren(Block block, Context context) {
     // Pass 1: Collect declarations
     for (final element in block.body) {
       if (element is Command && element.head == 'declare') {
@@ -218,12 +218,12 @@ class ManualBlockHandler implements BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   @override
-  void handle(Block block, ProcessingContext context) {
+  void handle(Block block, Context context) {
     // Setup logic
   }
   
   @override
-  Future<void> processChildren(Block block, ProcessingContext context) async {
+  Future<void> processChildren(Block block, Context context) async {
     final processor = context.globalContext.options['_processor'] as ConfigProcessor;
     
     // Filter and reorder

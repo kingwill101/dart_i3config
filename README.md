@@ -201,7 +201,7 @@ in published releases for your own tests.
 
 ## Assignments and Arrays
 
-V2 represents `=` and `+=` as `Assignment` nodes. Direct assignment produces a
+The library represents `=` and `+=` as `Assignment` nodes. Direct assignment produces a
 scalar; append assignment builds an array.
 
 ```dart
@@ -260,8 +260,7 @@ dart pub get
 
 ## Documentation
 
-- **[V2 Guide](docs/)** – state machine architecture, handlers, scoping, filesystem
-- **[Migration Guide](docs/migration.md)** – upgrading from V1 to V2 (V1 removed in 2.4.0)
+- **[Documentation](docs/)** – state machine architecture, handlers, scoping, filesystem
 - **[Examples](example/)** – runnable Dart example files
 
 ## License

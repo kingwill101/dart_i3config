@@ -448,5 +448,5 @@ class ConfigFormatter {
 - [Block Handlers](block-handlers.md) — Block type handling and scoping
 - [Context and Scoping](context-and-scoping.md) — Variable management
 - [Configuration Examples](configuration-examples.md) — Real-world examples
-- [Migration Guide](migration.md) — Upgrading from V1
+- [API Reference](api-reference.md) — Complete API documentation
 - [i3 User Guide](https://i3wm.org/docs/userguide.html) — Official i3 documentation

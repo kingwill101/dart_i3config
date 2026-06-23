@@ -1,11 +1,11 @@
-# Simple AST Iteration with V2
+# Simple AST Iteration
 
-V2's parser is more robust than V1, but you don't need to use the state machine if you just want to iterate over the parsed AST.
+You don't need to use the state machine if you just want to iterate over the parsed AST.
 
-## Why Use V2 Parser Without State Machine?
+## Why Use Parser Without State Machine?
 
-- **Better Parsing**: V2 uses PetitParser for more robust parsing
-- **Improved AST**: Better structured AST with clearer element types
+- **Better Parsing**: PetitParser-based for robust parsing
+- **Improved AST**: Well-structured AST with clear element types
 - **Future-Proof**: Easy to add state machine features later
 - **No Complexity**: Avoid handler registration and async processing
 
@@ -235,7 +235,7 @@ class BarConfig {
 ## When to Use This Approach
 
 Use simple AST iteration when you:
-- Want V2's improved parser without complexity
+- Want the improved parser without complexity
 - Need direct control over element processing
 - Are building simple configuration analysis tools
 - Want to avoid async processing
@@ -258,4 +258,4 @@ Simple AST iteration is very fast:
 - Direct element access
 - Minimal memory usage
 
-This approach gives you V2's parsing benefits with V1's simplicity.
+This approach gives you full parsing benefits without state machine complexity.

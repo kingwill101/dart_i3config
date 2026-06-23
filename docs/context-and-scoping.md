@@ -1,6 +1,6 @@
 # Context and Scoping
 
-Understanding how variables and options are managed across different scopes in i3conf V2.
+Understanding how variables and options are managed across different scopes in i3conf.
 
 ## Overview
 

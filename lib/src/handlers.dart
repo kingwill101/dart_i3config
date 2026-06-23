@@ -53,7 +53,7 @@ abstract class BlockHandler {
   /// Example:
   /// ```dart
   /// @override
-  /// Future<void> processChildren(Block block, ProcessingContext context) async {
+  /// Future<void> processChildren(Block block, Context context) async {
   ///   // Filter and process only certain children
   ///   for (final child in block.body.where((e) => shouldProcess(e))) {
   ///     await processElement(child, context);
