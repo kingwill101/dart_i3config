@@ -79,7 +79,7 @@ class ConfigProcessor implements BlockHandlerRegistry {
         try {
           await currentState.process(element, this);
         } catch (e) {
-          _context.errorHandler?.handleError(e, _context);
+          _context.errorHandler?.handleError(e.toString(), _context);
           // Continue processing other elements
         }
       }

@@ -4,7 +4,6 @@ import 'package:i3config/src/v2/base_handlers.dart' show BaseBlockHandler;
 import 'package:i3config/src/v2/context.dart' show Context;
 import 'package:i3config/src/v2/handlers.dart';
 import 'package:i3config/src/v2/processor.dart';
-import 'package:i3config/src/v2/value.dart';
 import 'package:i3config/src/v2/ast.dart'
     show
         Command,
@@ -14,6 +13,42 @@ import 'package:i3config/src/v2/ast.dart'
         Assignment,
         ConfigElement,
         Config;
+import 'package:i3config/src/v2/value.dart'
+    show
+        Value,
+        Quoted,
+        VariableRef,
+        BareArg,
+        ArrayValue,
+        InterpolatedString,
+        ValueSegmentLiteral,
+        ValueSegmentVariableReference,
+        BlockReference;
+
+String _expandInterpolatedString(
+  InterpolatedString str,
+  Context context,
+) {
+  final buffer = StringBuffer();
+  for (final seg in str.segments) {
+    if (seg is ValueSegmentLiteral) {
+      buffer.write(seg.text);
+    } else if (seg is ValueSegmentVariableReference) {
+      final resolved = context.getVariable(seg.name);
+      if (resolved is List) {
+        buffer.writeAll(resolved, ' ');
+      } else if (resolved != null) {
+        buffer.write(resolved);
+      } else {
+        if (context.reportUnresolvedVariables) {
+          context.reportError('Unknown variable: \$${seg.name}', span: null);
+        }
+        buffer.write('\$${seg.name}');
+      }
+    }
+  }
+  return buffer.toString();
+}
 
 /// Base state for the configuration processor.
 abstract class ProcessorState {
@@ -190,6 +225,14 @@ class CommandProcessingState extends ProcessorState {
       }
     } finally {
       processor.context.currentBlockType = previousBlockType;
+      final identifier = command.args.isNotEmpty
+          ? _expandValue(command.args.first, processor.context)
+          : null;
+      processor.context.globalContext.registerBlock(
+        command.head,
+        identifier,
+        Map.from(processor.context.variables),
+      );
       processor.popContext();
     }
   }
@@ -214,11 +257,20 @@ class CommandProcessingState extends ProcessorState {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
       case VariableRef varRef:
-        return context.getVariable(varRef.name) ?? '\$${varRef.name}';
+        final resolved = context.getVariable(varRef.name);
+        if (resolved != null) return resolved;
+        if (context.reportUnresolvedVariables) {
+          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+        }
+        return '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
       case ArrayValue array:
         return array.items.map((v) => _expandValue(v, context)).join(', ');
+      case InterpolatedString interpolated:
+        return _expandInterpolatedString(interpolated, context);
+      case BlockReference blockRef:
+        return context.resolveBlockReference(blockRef);
     }
   }
 }
@@ -302,11 +354,20 @@ class AssignmentProcessingState extends ProcessorState {
       case Quoted quoted:
         return context.expandVariables(quoted.value);
       case VariableRef varRef:
-        return context.getVariable(varRef.name) ?? '\$${varRef.name}';
+        final resolved = context.getVariable(varRef.name);
+        if (resolved != null) return resolved;
+        if (context.reportUnresolvedVariables) {
+          context.reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+        }
+        return '\$${varRef.name}';
       case BareArg bareArg:
         return context.expandVariables(bareArg.value);
       case ArrayValue array:
         return array.items.map((v) => _expandValue(v, context)).join(', ');
+      case InterpolatedString interpolated:
+        return _expandInterpolatedString(interpolated, context);
+      case BlockReference blockRef:
+        return context.resolveBlockReference(blockRef);
     }
   }
 }
