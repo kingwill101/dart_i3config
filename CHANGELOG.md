@@ -1,3 +1,8 @@
+## 2.4.1
+
+- Renamed `docs/` to `doc/` per Pub layout convention
+- Updated README doc paths
+
 ## 2.4.0
 
 ### Features
