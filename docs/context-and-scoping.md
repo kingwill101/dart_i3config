@@ -268,7 +268,7 @@ class IncludeHandler extends BaseCommandHandler<void> {
 ```
 
 > **Note:** The real `IncludeHandler` uses a pluggable `FileSystem` interface.
-> See the [API Reference](api-reference.md#filesystem-abstraction) for details.
+> See the `FileSystem` class in the source code for details.
 
 ### Array Variable Expansion
 

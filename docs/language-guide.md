@@ -443,10 +443,8 @@ class ConfigFormatter {
 
 ## Additional Resources
 
-- [API Reference](api-reference.md) — Complete class and method documentation
 - [Command Handlers](command-handlers.md) — Deep dive into command processing
 - [Block Handlers](block-handlers.md) — Block type handling and scoping
 - [Context and Scoping](context-and-scoping.md) — Variable management
 - [Configuration Examples](configuration-examples.md) — Real-world examples
-- [API Reference](api-reference.md) — Complete API documentation
 - [i3 User Guide](https://i3wm.org/docs/userguide.html) — Official i3 documentation

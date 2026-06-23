@@ -1,6 +1,5 @@
 # Documentation
 
-- [API Reference](api-reference.md) — complete API documentation
 - [Language Guide](language-guide.md) — i3 config syntax and library usage
 - [Block Handlers](block-handlers.md) — processing block types and scoped commands
 - [Command Handlers](command-handlers.md) — processing individual commands, file imports
