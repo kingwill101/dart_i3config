@@ -21,7 +21,7 @@ for (var element in config.elements) {
 
 ### V2 - State Machine
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 final config = Config.parse(configContent);
 final processor = ConfigProcessor();
@@ -30,7 +30,7 @@ await processor.process(config);
 
 ### V2 - Simple AST Iteration
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 final config = Config.parse(configContent);
 for (final element in config.statements) {

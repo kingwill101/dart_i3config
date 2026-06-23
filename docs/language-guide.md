@@ -239,7 +239,7 @@ void main() {
 #### Error Handling
 
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 void main() {
   final parser = Parser();
@@ -260,7 +260,7 @@ void main() {
 The state machine processes config elements through pluggable handlers:
 
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 class TerminalHandler extends BaseCommandHandler<void> {
   @override
@@ -358,7 +358,7 @@ dart run i3fmt config.conf --sort
 The library provides a `VirtualFileSystem` for testing `include` directives without real files:
 
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 void main() async {
   final vfs = VirtualFileSystem();

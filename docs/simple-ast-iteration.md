@@ -12,7 +12,7 @@ V2's parser is more robust than V1, but you don't need to use the state machine 
 ## Basic AST Iteration
 
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 final configContent = '''
 # Global variables

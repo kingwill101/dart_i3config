@@ -491,7 +491,7 @@ class PhysicalFileSystem implements FileSystem {
 
 ### VirtualFileSystem
 
-In-memory implementation for testing. Exported from `package:i3config/i3config_v2.dart`.
+In-memory implementation for testing. Exported from `package:i3config/i3config.dart`.
 
 ```dart
 class VirtualFileSystem implements FileSystem {
@@ -509,7 +509,7 @@ class VirtualFileSystem implements FileSystem {
 
 Usage in tests:
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 final vfs = VirtualFileSystem();
 vfs.createFile('modules/bar.conf', 'position top');

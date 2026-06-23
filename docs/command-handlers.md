@@ -486,7 +486,7 @@ The [FileSystem abstraction](api-reference.md#filesystem-abstraction) lets you
 test `include` directives without touching the real filesystem:
 
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 void main() {
   final vfs = VirtualFileSystem();
