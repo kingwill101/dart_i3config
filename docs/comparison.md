@@ -1,5 +1,8 @@
 # V1 vs V2 Comparison
 
+> **Note:** V1 has been removed as of version 2.4.0. The `i3config_v1.dart` import is no longer
+> available. This document is kept for historical reference.
+
 This document provides side-by-side comparisons of common operations in V1 and V2.
 
 ## Basic Parsing
@@ -220,25 +223,7 @@ final config = Config.parse(configContent);
 | Memory Usage | Low | Medium |
 | Complexity | Low | High |
 
-## When to Use Each Version
-
-### Use V1 When:
-- Simple configuration parsing
-- Direct AST manipulation
-- Minimal processing needs
-- Legacy compatibility
-- Learning i3 config format
-
-### Use V2 When:
-- Building configuration tools
-- Need advanced processing
-- Want handler architecture
-- Require scoped commands
-- Building on top of i3 config
-- Need async processing
-
 ## Migration Path
 
 1. **Simple Migration**: Use V2 parser with AST iteration (no state machine)
 2. **Full Migration**: Implement handlers and use state machine
-3. **Gradual Migration**: Start with V2 parser, add handlers incrementally

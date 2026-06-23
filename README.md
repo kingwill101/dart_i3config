@@ -261,7 +261,7 @@ dart pub get
 ## Documentation
 
 - **[V2 Guide](docs/v2/)** – state machine architecture, handlers, scoping, filesystem
-- **[Migration Guide](docs/v2/migration.md)** – upgrading from V1 to V2
+- **[Migration Guide](docs/v2/migration.md)** – upgrading from V1 to V2 (V1 removed in 2.4.0)
 - **[Examples](example/)** – runnable Dart example files
 
 ## License

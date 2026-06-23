@@ -207,7 +207,7 @@ dependencies:
 
 ### Parsing
 
-#### V2 (Default)
+#### Parsing
 
 ```dart
 import 'package:i3config/i3config.dart';
@@ -233,18 +233,6 @@ void main() {
         print('Comment: ${c.content}');
     }
   }
-}
-```
-
-#### V1 (Legacy)
-
-```dart
-import 'package:i3config/i3config_v1.dart';
-
-void main() {
-  final parser = I3ConfigParser(configContent);
-  final config = parser.parse();
-  print('Parsed ${config.elements.length} elements');
 }
 ```
 

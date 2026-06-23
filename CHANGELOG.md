@@ -10,7 +10,8 @@
 - **`Context.reportError()`** — New public API for reporting errors with optional source span from anywhere in the processing pipeline
 - **Examples** — New `example/interpolation_and_block_ref_example.dart` and `example/dotted_heads_colors_example.dart` demonstrating all new features
 
-### Changes
+### Breaking Changes
+- **V1 removal** — The legacy V1 parser (`lib/src/v1/`, `i3config_v1.dart`) has been removed. Use the default `import 'package:i3config/i3config.dart'` instead.
 - `ErrorHandler.handleError` signature: `dynamic error` → `String message` with named `SourceSpan? span` parameter
 - `bareChar()` and `_arrayBareChar()` expanded to include `:` for font specs like `pango:Noto Sans`
 - `include_handler.dart` error reporting passes string message instead of `ConfigCompositionException`

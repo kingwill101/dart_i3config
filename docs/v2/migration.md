@@ -1,5 +1,8 @@
 # Migration Guide: V1 to V2
 
+> **Note:** V1 has been removed as of version 2.4.0. The `i3config_v1.dart` import is no longer
+> available. Migrate any remaining V1 usage to V2 using this guide.
+
 This guide helps you migrate from i3conf V1 to V2.
 
 ## Quick Migration (AST Iteration Only)
@@ -20,7 +23,7 @@ for (var element in config.elements) {
 
 ### After (V2 - Simple)
 ```dart
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 
 final config = Config.parse(configContent);
 
@@ -30,7 +33,7 @@ for (final element in config.statements) {
 ```
 
 **Changes:**
-- Import `i3config_v2.dart` instead of `i3config_v1.dart`
+- Import `i3config.dart` instead of `i3config_v1.dart`
 - Use `Config.parse()` instead of `I3ConfigParser`
 - Access `config.statements` instead of `config.elements`
 
@@ -38,13 +41,13 @@ for (final element in config.statements) {
 
 ### Step 1: Update Imports and Parsing
 ```dart
-// Before
+// Before (V1 - removed in 2.4.0)
 import 'package:i3config/i3config_v1.dart';
 final parser = I3ConfigParser(configContent);
 final config = parser.parse();
 
 // After
-import 'package:i3config/i3config_v2.dart';
+import 'package:i3config/i3config.dart';
 final config = Config.parse(configContent);
 ```
 
@@ -221,7 +224,7 @@ for (final element in config.statements) {
 
 ## Migration Checklist
 
-- [ ] Update imports to `i3config_v2.dart`
+- [ ] Update imports to `i3config.dart` (was `i3config_v1.dart`)
 - [ ] Replace `I3ConfigParser` with `Config.parse()`
 - [ ] Update element iteration (`config.statements` instead of `config.elements`)
 - [ ] Update element type checks (Command, Assignment, Block, Comment)
@@ -244,7 +247,7 @@ for (final element in config.statements) {
 
 ### Common Issues
 
-1. **Import Errors**: Make sure you're importing `i3config_v2.dart`
+1. **Import Errors**: Make sure you're importing `i3config.dart` (V1 import `i3config_v1.dart` was removed in 2.4.0)
 2. **Element Access**: Use `config.statements` instead of `config.elements`
 3. **Type Changes**: Command/Assignment instead of Section/Property
 4. **Async Processing**: Remember to `await processor.process(config)`
