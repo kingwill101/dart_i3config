@@ -1,3 +1,26 @@
+## 2.4.0
+
+### Features
+- **String interpolation** — Double-quoted strings support `$variable` references, producing `InterpolatedString` AST nodes with `ValueSegmentLiteral` and `ValueSegmentVariableReference` segments. Single-quoted strings remain literal (`lib/src/v2/grammar.dart`, `lib/src/v2/value.dart`)
+- **Block references** — Dotted-path references like `bar.main.position` resolve properties from processed blocks at runtime (`lib/src/v2/context.dart`, `lib/src/v2/grammar.dart`)
+- **Block references in arrays** — Arrays can contain interpolated strings and block references alongside bare args and quoted strings
+- **Dotted command heads** — `commandHead()` uses `dottedIdent()` so commands like `client.focused`, `client.unfocused` parse as a single head instead of splitting at the dot (`lib/src/v2/grammar.dart`)
+- **Hex color values** — New `hexColor()` parser recognizes `#` followed by hex digits as `BareArg`, preventing hex colors from being consumed as trailing comments (`lib/src/v2/grammar.dart`)
+- **Error reporting for unresolved references** — `Context.reportUnresolvedVariables` and `Context.reportUnresolvedBlockReferences` flags trigger `ErrorHandler.handleError` with `SourceSpan` positioning when variables or block properties cannot be resolved (`lib/src/v2/context.dart`, `lib/src/v2/handlers.dart`)
+- **`Context.reportError()`** — New public API for reporting errors with optional source span from anywhere in the processing pipeline
+- **Examples** — New `example/interpolation_and_block_ref_example.dart` and `example/dotted_heads_colors_example.dart` demonstrating all new features
+
+### Changes
+- `ErrorHandler.handleError` signature: `dynamic error` → `String message` with named `SourceSpan? span` parameter
+- `bareChar()` and `_arrayBareChar()` expanded to include `:` for font specs like `pango:Noto Sans`
+- `include_handler.dart` error reporting passes string message instead of `ConfigCompositionException`
+
+### Documentation
+- Updated `docs/v2/language-guide.md` with interpolation, block references, dotted command heads, hex colors, and inline comments
+- Updated `docs/v2/README.md` with new features and usage examples
+- Updated `docs/v2/api-reference.md` with `InterpolatedString`, `BlockReference`, `ValueSegment*` types, updated `ErrorHandler`, `Context`, `Command`, `Assignment` docs
+- Updated root `README.md` feature list and error handling section
+
 ## 2.3.1
 
 ### Features
