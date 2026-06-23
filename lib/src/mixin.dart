@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:i3config/src/v2/ast.dart' show Block;
-import 'package:i3config/src/v2/context.dart';
-import 'package:i3config/src/v2/value.dart';
+import 'package:i3config/src/ast.dart' show Block;
+import 'package:i3config/src/context.dart';
+import 'package:i3config/src/value.dart';
 
 /// Mixin that provides value expansion utility for handlers.
 mixin ValueExpander {

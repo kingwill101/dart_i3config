@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:i3config/src/v2/context.dart' show Context;
-import 'package:i3config/src/v2/handlers.dart';
-import 'package:i3config/src/v2/value.dart';
+import 'package:i3config/src/context.dart' show Context;
+import 'package:i3config/src/handlers.dart';
+import 'package:i3config/src/value.dart';
 
 import 'ast.dart';
 

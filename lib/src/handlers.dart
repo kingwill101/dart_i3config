@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:i3config/src/v2/context.dart';
-import 'package:i3config/src/v2/ast.dart';
+import 'package:i3config/src/context.dart';
+import 'package:i3config/src/ast.dart';
 import 'package:source_span/source_span.dart';
 
 /// Handler for specific command types.

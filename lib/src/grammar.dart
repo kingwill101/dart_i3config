@@ -3,7 +3,7 @@
 /// This is the simplest possible grammar to get basic parsing working.
 library;
 
-import 'package:i3config/src/v2/value.dart';
+import 'package:i3config/src/value.dart';
 import 'package:petitparser/petitparser.dart';
 import 'package:source_span/source_span.dart';
 import 'ast.dart';

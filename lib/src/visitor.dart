@@ -1,4 +1,4 @@
-import 'package:i3config/src/v2/value.dart';
+import 'package:i3config/src/value.dart';
 
 import 'ast.dart';
 

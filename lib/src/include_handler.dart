@@ -1,10 +1,10 @@
 import 'dart:io' show Platform;
 
-import 'package:i3config/src/v2/base_handlers.dart' show BaseCommandHandler;
-import 'package:i3config/src/v2/context.dart' show Context;
-import 'package:i3config/src/v2/ast.dart' show Command, Config;
-import 'package:i3config/src/v2/processor.dart' show ConfigProcessor;
-import 'package:i3config/src/v2/value.dart' show Value;
+import 'package:i3config/src/base_handlers.dart' show BaseCommandHandler;
+import 'package:i3config/src/context.dart' show Context;
+import 'package:i3config/src/ast.dart' show Command, Config;
+import 'package:i3config/src/processor.dart' show ConfigProcessor;
+import 'package:i3config/src/value.dart' show Value;
 import 'filesystem.dart' show FileSystem, PhysicalFileSystem;
 
 /// Exception thrown when a composed (included) configuration fails to process.

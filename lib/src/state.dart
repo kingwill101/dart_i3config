@@ -1,10 +1,10 @@
 import 'dart:async' show FutureOr;
 
-import 'package:i3config/src/v2/base_handlers.dart' show BaseBlockHandler;
-import 'package:i3config/src/v2/context.dart' show Context;
-import 'package:i3config/src/v2/handlers.dart';
-import 'package:i3config/src/v2/processor.dart';
-import 'package:i3config/src/v2/ast.dart'
+import 'package:i3config/src/base_handlers.dart' show BaseBlockHandler;
+import 'package:i3config/src/context.dart' show Context;
+import 'package:i3config/src/handlers.dart';
+import 'package:i3config/src/processor.dart';
+import 'package:i3config/src/ast.dart'
     show
         Command,
         Block,
@@ -13,7 +13,7 @@ import 'package:i3config/src/v2/ast.dart'
         Assignment,
         ConfigElement,
         Config;
-import 'package:i3config/src/v2/value.dart'
+import 'package:i3config/src/value.dart'
     show
         Value,
         Quoted,

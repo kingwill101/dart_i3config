@@ -4,7 +4,7 @@
 /// configuration elements with better type safety and exhaustiveness checking.
 library;
 
-import 'package:i3config/src/v2/value.dart';
+import 'package:i3config/src/value.dart';
 import 'package:source_span/source_span.dart';
 import 'parser.dart';
 

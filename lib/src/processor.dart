@@ -1,9 +1,9 @@
-import 'package:i3config/src/v2/ast.dart';
-import 'package:i3config/src/v2/builtin.dart';
-import 'package:i3config/src/v2/context.dart' show Context;
-import 'package:i3config/src/v2/handlers.dart';
-import 'package:i3config/src/v2/include_handler.dart';
-import 'package:i3config/src/v2/state.dart' show ProcessorState, InitialState;
+import 'package:i3config/src/ast.dart';
+import 'package:i3config/src/builtin.dart';
+import 'package:i3config/src/context.dart' show Context;
+import 'package:i3config/src/handlers.dart';
+import 'package:i3config/src/include_handler.dart';
+import 'package:i3config/src/state.dart' show ProcessorState, InitialState;
 import 'filesystem.dart' show FileSystem, PhysicalFileSystem;
 
 /// Main configuration processor that orchestrates the state machine.

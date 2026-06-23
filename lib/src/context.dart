@@ -1,6 +1,6 @@
-import 'package:i3config/src/v2/handlers.dart';
-import 'package:i3config/src/v2/state.dart';
-import 'package:i3config/src/v2/value.dart' show BlockReference;
+import 'package:i3config/src/handlers.dart';
+import 'package:i3config/src/state.dart';
+import 'package:i3config/src/value.dart' show BlockReference;
 import 'package:source_span/source_span.dart';
 
 /// Context object that holds processing state and configuration.
