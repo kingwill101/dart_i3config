@@ -27,6 +27,10 @@ sealed class Value {
         return BareArg.fromJson(json);
       case 'ArrayValue':
         return ArrayValue.fromJson(json);
+      case 'InterpolatedString':
+        return InterpolatedString.fromJson(json);
+      case 'BlockReference':
+        return BlockReference.fromJson(json);
       default:
         throw Exception('Unknown Value type: ${json['type']}');
     }
@@ -121,4 +125,132 @@ class BareArg extends Value {
   Map<String, dynamic> toJson() => {'type': 'BareArg', 'value': value};
 
   factory BareArg.fromJson(Map<String, dynamic> json) => BareArg(json['value']);
+}
+
+/// Segment inside an interpolated string.
+sealed class ValueSegment {
+  const ValueSegment();
+
+  /// Format this segment for config serialization.
+  String toConfigString();
+
+  /// Convert to JSON representation.
+  Map<String, dynamic> toJson();
+
+  /// Create from JSON representation.
+  factory ValueSegment.fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'Literal':
+        return ValueSegmentLiteral.fromJson(json);
+      case 'VariableReference':
+        return ValueSegmentVariableReference.fromJson(json);
+      default:
+        throw Exception('Unknown ValueSegment type: ${json['type']}');
+    }
+  }
+}
+
+/// Literal text segment inside an [InterpolatedString].
+class ValueSegmentLiteral extends ValueSegment {
+  final String text;
+
+  const ValueSegmentLiteral(this.text);
+
+  @override
+  String toString() => 'Literal($text)';
+
+  @override
+  String toConfigString() => _escapeForDoubleQuote(text);
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'Literal', 'text': text};
+
+  factory ValueSegmentLiteral.fromJson(Map<String, dynamic> json) =>
+      ValueSegmentLiteral(json['text']);
+}
+
+/// Variable reference segment inside an [InterpolatedString].
+class ValueSegmentVariableReference extends ValueSegment {
+  final String name;
+
+  const ValueSegmentVariableReference(this.name);
+
+  @override
+  String toString() => 'VariableReference(\$$name)';
+
+  @override
+  String toConfigString() => '\$$name';
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'VariableReference', 'name': name};
+
+  factory ValueSegmentVariableReference.fromJson(Map<String, dynamic> json) =>
+      ValueSegmentVariableReference(json['name']);
+}
+
+/// Double-quoted string with variable interpolation, e.g. `"base/$dir/config"`.
+class InterpolatedString extends Value {
+  final List<ValueSegment> segments;
+  final String quoteChar; // always '"' for interpolated strings
+
+  InterpolatedString(this.segments, this.quoteChar, [super.span]);
+
+  @override
+  String toString() =>
+      'InterpolatedString($quoteChar${segments.map((s) => s.toString()).join('')}$quoteChar)';
+
+  @override
+  String toConfigString() {
+    final buffer = StringBuffer();
+    buffer.write(quoteChar);
+    for (final seg in segments) {
+      buffer.write(seg.toConfigString());
+    }
+    buffer.write(quoteChar);
+    return buffer.toString();
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'InterpolatedString',
+    'segments': segments.map((s) => s.toJson()).toList(),
+    'quoteChar': quoteChar,
+  };
+
+  factory InterpolatedString.fromJson(Map<String, dynamic> json) {
+    final segments = (json['segments'] as List)
+        .map((s) => ValueSegment.fromJson(s as Map<String, dynamic>))
+        .toList();
+    return InterpolatedString(segments, json['quoteChar']);
+  }
+}
+
+/// Dotted-path block reference, e.g. `bar.main.position`.
+class BlockReference extends Value {
+  final List<String> path;
+
+  BlockReference(this.path, [super.span]);
+
+  @override
+  String toString() => 'BlockReference(${path.join('.')})';
+
+  @override
+  String toConfigString() => path.join('.');
+
+  @override
+  Map<String, dynamic> toJson() => {'type': 'BlockReference', 'path': path};
+
+  factory BlockReference.fromJson(Map<String, dynamic> json) =>
+      BlockReference((json['path'] as List).cast<String>());
+}
+
+/// Escape a raw string for inclusion inside a double-quoted i3 config value.
+String _escapeForDoubleQuote(String text) {
+  return text
+      .replaceAll('\\', '\\\\')
+      .replaceAll('"', '\\"')
+      .replaceAll(r'$', r'\$')
+      .replaceAll('\n', '\\n')
+      .replaceAll('\r', '\\r')
+      .replaceAll('\t', '\\t');
 }
