@@ -14,6 +14,7 @@ A Dart library for parsing and processing i3/Sway configuration files. Includes 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Key Features](#key-features)
+- [Language Features](#language-features)
 - [Built-in Handlers](#built-in-handlers)
 - [Custom Handlers](#custom-handlers)
 - [Assignments and Arrays](#assignments-and-arrays)
@@ -87,6 +88,90 @@ void main() {
 - **Async Support** — handlers can be sync or async; the processor awaits them
 - **Array Handling** — built-in support for array operations via `+=`
 - **Context Management** — hierarchical variable and option scoping
+
+## Language Features
+
+i3conf parses and processes the full i3/Sway config syntax, with several
+extensions for dynamic configuration.
+
+### String Interpolation
+
+Double-quoted strings resolve `$variable` references. Single-quoted strings are literal.
+
+```i3
+set $theme   dark
+set $status  "i3status -c $theme"
+set $launcher "rofi -font 'Noto Sans $font_size'"
+```
+
+### Block References
+
+Reference properties from other blocks using dotted paths.
+
+```i3
+bar "main" {
+    status_command i3status
+    position top
+}
+
+set $bar_pos  bar.main.position
+set $bar_cmd  bar.main.status_command
+```
+
+Omitting the identifier matches the first block of that type:
+
+```i3
+set $first_cmd  bar.status_command
+```
+
+### Dotted Command Heads
+
+Commands with dotted names parse as a single head:
+
+```i3
+client.focused   #tabbed   #4c7899
+client.unfocused #tabbed   #285577
+client.urgent    #tabbed   #900000
+```
+
+### Hex Color Values
+
+`#`-prefixed hex colors are parsed as bare argument values:
+
+```i3
+set $bg       #2e3440
+set $fg       #d8dee9
+client.focused #tabbed #4c7899
+```
+
+### Inline Comments
+
+Trailing `#` comments after commands and assignments are preserved:
+
+```i3
+bindsym $mod+Return exec alacritty  # launch terminal
+set $mod Mod4                        # set mod key
+```
+
+### Assignments and Arrays
+
+`=` assigns a scalar, `+=` appends to an array:
+
+```i3
+order = "wireless wlan0"
+order += "battery 0"
+order += "clock"
+```
+
+### File Imports with Variable Expansion
+
+Include external config files during processing:
+
+```i3
+include "modules/bar.conf"
+include "$config_dir/colors.conf"
+include "~/.config/i3/workspaces.conf"
+```
 
 ## Built-in Handlers
 
