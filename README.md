@@ -183,7 +183,7 @@ The `IncludeHandler` reads files through a `FileSystem` interface rather than
 
 ```dart
 import 'package:i3config/i3config.dart';
-import 'package:i3config/src/v2/test_vfs.dart';
+import 'package:i3config/src/test_vfs.dart';
 
 void main() async {
   final vfs = VirtualFileSystem();
@@ -196,7 +196,7 @@ void main() async {
 }
 ```
 
-The `VirtualFileSystem` lives in `src/v2/test_vfs.dart` and is available
+The `VirtualFileSystem` lives in `src/test_vfs.dart` and is available
 in published releases for your own tests.
 
 ## Assignments and Arrays
@@ -260,8 +260,8 @@ dart pub get
 
 ## Documentation
 
-- **[V2 Guide](docs/v2/)** – state machine architecture, handlers, scoping, filesystem
-- **[Migration Guide](docs/v2/migration.md)** – upgrading from V1 to V2 (V1 removed in 2.4.0)
+- **[V2 Guide](docs/)** – state machine architecture, handlers, scoping, filesystem
+- **[Migration Guide](docs/migration.md)** – upgrading from V1 to V2 (V1 removed in 2.4.0)
 - **[Examples](example/)** – runnable Dart example files
 
 ## License

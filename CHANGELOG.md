@@ -1,12 +1,12 @@
 ## 2.4.0
 
 ### Features
-- **String interpolation** — Double-quoted strings support `$variable` references, producing `InterpolatedString` AST nodes with `ValueSegmentLiteral` and `ValueSegmentVariableReference` segments. Single-quoted strings remain literal (`lib/src/v2/grammar.dart`, `lib/src/v2/value.dart`)
-- **Block references** — Dotted-path references like `bar.main.position` resolve properties from processed blocks at runtime (`lib/src/v2/context.dart`, `lib/src/v2/grammar.dart`)
+- **String interpolation** — Double-quoted strings support `$variable` references, producing `InterpolatedString` AST nodes with `ValueSegmentLiteral` and `ValueSegmentVariableReference` segments. Single-quoted strings remain literal (`lib/src/grammar.dart`, `lib/src/value.dart`)
+- **Block references** — Dotted-path references like `bar.main.position` resolve properties from processed blocks at runtime (`lib/src/context.dart`, `lib/src/grammar.dart`)
 - **Block references in arrays** — Arrays can contain interpolated strings and block references alongside bare args and quoted strings
-- **Dotted command heads** — `commandHead()` uses `dottedIdent()` so commands like `client.focused`, `client.unfocused` parse as a single head instead of splitting at the dot (`lib/src/v2/grammar.dart`)
-- **Hex color values** — New `hexColor()` parser recognizes `#` followed by hex digits as `BareArg`, preventing hex colors from being consumed as trailing comments (`lib/src/v2/grammar.dart`)
-- **Error reporting for unresolved references** — `Context.reportUnresolvedVariables` and `Context.reportUnresolvedBlockReferences` flags trigger `ErrorHandler.handleError` with `SourceSpan` positioning when variables or block properties cannot be resolved (`lib/src/v2/context.dart`, `lib/src/v2/handlers.dart`)
+- **Dotted command heads** — `commandHead()` uses `dottedIdent()` so commands like `client.focused`, `client.unfocused` parse as a single head instead of splitting at the dot (`lib/src/grammar.dart`)
+- **Hex color values** — New `hexColor()` parser recognizes `#` followed by hex digits as `BareArg`, preventing hex colors from being consumed as trailing comments (`lib/src/grammar.dart`)
+- **Error reporting for unresolved references** — `Context.reportUnresolvedVariables` and `Context.reportUnresolvedBlockReferences` flags trigger `ErrorHandler.handleError` with `SourceSpan` positioning when variables or block properties cannot be resolved (`lib/src/context.dart`, `lib/src/handlers.dart`)
 - **`Context.reportError()`** — New public API for reporting errors with optional source span from anywhere in the processing pipeline
 - **Examples** — New `example/interpolation_and_block_ref_example.dart` and `example/dotted_heads_colors_example.dart` demonstrating all new features
 
@@ -17,15 +17,15 @@
 - `include_handler.dart` error reporting passes string message instead of `ConfigCompositionException`
 
 ### Documentation
-- Updated `docs/v2/language-guide.md` with interpolation, block references, dotted command heads, hex colors, and inline comments
-- Updated `docs/v2/README.md` with new features and usage examples
-- Updated `docs/v2/api-reference.md` with `InterpolatedString`, `BlockReference`, `ValueSegment*` types, updated `ErrorHandler`, `Context`, `Command`, `Assignment` docs
+- Updated `docs/language-guide.md` with interpolation, block references, dotted command heads, hex colors, and inline comments
+- Updated `docs/README.md` with new features and usage examples
+- Updated `docs/api-reference.md` with `InterpolatedString`, `BlockReference`, `ValueSegment*` types, updated `ErrorHandler`, `Context`, `Command`, `Assignment` docs
 - Updated root `README.md` feature list and error handling section
 
 ## 2.3.1
 
 ### Features
-- **Contextual error messages** — Parse errors now produce specific messages instead of "end of input expected": `missing closing bracket/brace/quote`, `unexpected closing bracket/brace`, `expected a command after ';'`, and `unexpected character 'X'` (`lib/src/v2/grammar.dart`)
+- **Contextual error messages** — Parse errors now produce specific messages instead of "end of input expected": `missing closing bracket/brace/quote`, `unexpected closing bracket/brace`, `expected a command after ';'`, and `unexpected character 'X'` (`lib/src/grammar.dart`)
 - **`_orError()` helper** — PetitParser 7 compatible custom error messages via `failure()` + `toChoiceParser()`, applied to closing tokens in criteria, blocks, arrays, strings, and assignment operators
 
 ### Fixes
@@ -46,12 +46,12 @@
 ## 2.2.0
 
 ### Features
-- **ConfigFormatter** — New `formatter.dart` with `ConfigFormatter` class and `FormatterOptions` that serializes a `Config` AST back to formatted i3 config text. Supports custom indent, sorting assignments, and trailing newline control (`lib/src/v2/formatter.dart`)
+- **ConfigFormatter** — New `formatter.dart` with `ConfigFormatter` class and `FormatterOptions` that serializes a `Config` AST back to formatted i3 config text. Supports custom indent, sorting assignments, and trailing newline control (`lib/src/formatter.dart`)
 - **`toConfigString()` on Value types** — Every `Value` subtype (`BareArg`, `Quoted`, `VariableRef`, `ArrayValue`) now has a `toConfigString()` method for standalone serialization
 - **`i3fmt` CLI tool** — New `bin/i3fmt.dart` using `package:artisanal/args.dart` for styled help output. Reads from file or stdin, writes to stdout or `-o`. Supports `--indent` and `--sort` flags
 
 ### Documentation
-- Added comprehensive language guide (`docs/v2/language-guide.md`) covering i3 config syntax and library usage end-to-end
+- Added comprehensive language guide (`docs/language-guide.md`) covering i3 config syntax and library usage end-to-end
 
 ### Dependencies
 - Added `artisanal: ^0.3.0` dependency (used by the CLI tool)
@@ -75,9 +75,9 @@
 - Removed unused `st` stack trace variable in `IncludeHandler`
 
 ### Documentation
-- Added "Pluggable Filesystem" subsection to `docs/v2/README.md` with injection examples
-- Added `FileSystem`, `PhysicalFileSystem`, `VirtualFileSystem` and `IncludeHandler` to `docs/v2/api-reference.md`
-- Added VFS test patterns to `docs/v2/command-handlers.md`
+- Added "Pluggable Filesystem" subsection to `docs/README.md` with injection examples
+- Added `FileSystem`, `PhysicalFileSystem`, `VirtualFileSystem` and `IncludeHandler` to `docs/api-reference.md`
+- Added VFS test patterns to `docs/command-handlers.md`
 - Overhauled repo `README.md` with badges, cleaner structure, and filesystem coverage
 
 ## 2.0.0
@@ -103,7 +103,7 @@
 - Visitor pattern support with `visitAssignment()` method
 
 ### Tooling & Documentation
-- Added `test/v2/advanced_parser_test.dart` to cover grammar breadth, error reporting, and line continuations
+- Added `test/advanced_parser_test.dart` to cover grammar breadth, error reporting, and line continuations
 - Refreshed V2 API reference, migration guide, and README with 2.0 guidance
 
 ### Migration Guide

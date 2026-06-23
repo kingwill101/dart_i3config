@@ -1,18 +1,12 @@
-/// i3config v2 - Modern PetitParser implementation with source position tracking
+/// i3config — PetitParser implementation with source position tracking
 ///
-/// This is the new, advanced implementation of the i3config parser using
-/// the PetitParser framework. It provides enhanced features including:
-///
-/// - Precise source position tracking for all parsed elements
-/// - Enhanced error reporting with line/column information
-/// - Comprehensive AST with sealed class hierarchies
-/// - Better type safety and exhaustiveness checking
-/// - Support for complex parsing scenarios
+/// This library provides a robust parser and processor for i3/Sway
+/// configuration files using the PetitParser framework.
 ///
 /// ## Usage
 ///
 /// ```dart
-/// import 'package:i3config/i3config_v2.dart';
+/// import 'package:i3config/i3config.dart';
 ///
 /// // Parse with automatic position tracking
 /// final config = Config.parse(configContent);
@@ -25,9 +19,9 @@
 ///   }
 /// }
 ///
-/// // Or use the parser directly for advanced options
-/// final parser = I3ConfigParser();
-/// final result = parser.parseWithDetails(configContent);
+/// // Use the state machine processor
+/// final processor = ConfigProcessor();
+/// await processor.process(config);
 /// ```
 ///
 /// ## Features
@@ -38,49 +32,26 @@
 /// - **Type-Safe AST**: Sealed classes for better pattern matching
 /// - **Visitor Pattern**: Built-in visitor support for AST traversal
 /// - **Extensible Handlers**: Plugin architecture for custom processing
-///
-/// ## Migration from V1
-///
-/// The v2 API is largely compatible with v1, but provides additional features:
-///
-/// ```dart
-/// // v1 style (still works)
-/// final config = Config.parse(configContent);
-///
-/// // v2 enhanced features
-/// final parser = I3ConfigParser();
-/// final result = parser.parseWithDetails(configContent, url: Uri.file('config'));
-///
-/// if (result.isSuccess) {
-///   final config = result.config;
-///   // Access position information
-///   for (final stmt in config.statements) {
-///     print('Statement span: ${stmt.span}');
-///   }
-/// } else {
-///   print('Error: ${result.error}');
-///   if (result.suggestion != null) {
-///     print('Suggestion: ${result.suggestion}');
-///   }
-/// }
-/// ```
+/// - **State Machine**: Advanced processing pipeline with configurable states
+/// - **Variable Expansion**: Dynamic variable resolution with scoping
+/// - **String Interpolation**: Double-quoted strings support `$variable` references
 library;
 
-// Export the v2 PetitParser implementation
-export 'src/v2/ast.dart';
-export 'src/v2/parser.dart';
-export 'src/v2/parse_result.dart';
-export 'src/v2/visitor.dart';
-export 'src/v2/handlers.dart';
-export 'src/v2/base_handlers.dart';
-export 'src/v2/context.dart';
-export 'src/v2/state.dart';
-export 'src/v2/processor.dart';
-export 'src/v2/models.dart';
-export 'src/v2/value.dart';
-export 'src/v2/builtin.dart';
-export 'src/v2/mixin.dart';
-export 'src/v2/filesystem.dart';
+// Export the implementation
+export 'src/ast.dart';
+export 'src/parser.dart';
+export 'src/parse_result.dart';
+export 'src/visitor.dart';
+export 'src/handlers.dart';
+export 'src/base_handlers.dart';
+export 'src/context.dart';
+export 'src/state.dart';
+export 'src/processor.dart';
+export 'src/models.dart';
+export 'src/value.dart';
+export 'src/builtin.dart';
+export 'src/mixin.dart';
+export 'src/filesystem.dart';
 // VirtualFileSystem is exported for consumer testing use
-export 'src/v2/test_vfs.dart';
-export 'src/v2/formatter.dart';
+export 'src/test_vfs.dart';
+export 'src/formatter.dart';

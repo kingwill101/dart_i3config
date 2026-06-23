@@ -261,7 +261,7 @@ The `style` block inside `widget`:
 
 ## Testing
 
-See comprehensive tests in `test/v2/custom_child_processing_test.dart`:
+See comprehensive tests in `test/custom_child_processing_test.dart`:
 
 - ✅ Skip automatic processing
 - ✅ Filter children
