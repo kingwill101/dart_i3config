@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/kingwill101/dart_i3config)](LICENSE)
 [![GitHub](https://img.shields.io/badge/repo-github-blue)](https://github.com/kingwill101/dart_i3config)
 
-A Dart library for parsing and processing i3/Sway configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, and a virtual filesystem for testing.
+A Dart library for parsing and processing i3/Sway like configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, string interpolation, block references, dotted command heads, hex color value support, inline comments, and a virtual filesystem for testing.
 
 ## Features
 
@@ -20,10 +20,6 @@ A Dart library for parsing and processing i3/Sway configuration files. Includes 
 - **Variable scoping** – block-level context with parent inheritance
 - **Async handlers** – handlers can be sync or async; the processor awaits them
 
-### AST
-- Type-safe sealed nodes: `Assignment`, `Block`, `Command`, `Comment`
-- Source position tracking with contextual parse errors
-- Built-in JSON serialization
 
 ## Quick Start
 
@@ -230,19 +226,25 @@ for (final a in config.statements.whereType<Assignment>()) {
 
 ## Error Handling
 
-Parse errors throw from `Config.parse`. Processing errors flow through the
-error handler.
+Parse errors throw from `Config.parse`. Processing errors flow through the error handler.
 
 ```dart
 class Logger implements ErrorHandler {
   @override
-  void handleError(dynamic error, Context context) {
-    print('Error: $error');
+  void handleError(String message, Context context, {SourceSpan? span}) {
+    print('Error at ${span?.start.line ?? '?'}:${span?.start.column ?? '?'}: $message');
   }
 }
 
 final processor = ConfigProcessor()..setErrorHandler(Logger());
 await processor.processString('include "missing.conf"');
+```
+
+Enable warnings for unresolved references:
+
+```dart
+processor.context.reportUnresolvedVariables = true;
+processor.context.reportUnresolvedBlockReferences = true;
 ```
 
 ## Installation
@@ -261,11 +263,6 @@ dart pub get
 - **[V2 Guide](docs/v2/)** – state machine architecture, handlers, scoping, filesystem
 - **[Migration Guide](docs/v2/migration.md)** – upgrading from V1 to V2
 - **[Examples](example/)** – runnable Dart example files
-
-## V1 (Legacy)
-
-V1 is available at `package:i3config/i3config_v1.dart` for legacy
-compatibility. All new projects should use V2.
 
 ## License
 

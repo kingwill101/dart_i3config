@@ -8,11 +8,12 @@ A complete reference for the i3/Sway configuration language and the `i3config` l
 
 ### Comments
 
-Lines starting with `#` are comments:
+Lines starting with `#` are full-line comments. Inline comments (after a command or assignment on the same line) are also supported and stored as `trailingComment` on the AST node:
 
 ```i3
-# This is a comment
+# This is a full-line comment
 set $mod Mod4
+bindsym $mod+Return exec i3-sensible-terminal # launch terminal
 ```
 
 ### Value Types
@@ -24,6 +25,15 @@ Unquoted values like identifiers, paths, and numbers:
 ```i3
 bindsym $mod+Return exec i3-sensible-terminal
 position top
+```
+
+#### Hex Color Values
+
+`#` prefixed hex color values are recognized as bare arguments:
+
+```i3
+client.focused #4c7899 #285577 #ffffff #2e9ef4 #285577
+client.background #ffffff
 ```
 
 #### Quoted Strings
@@ -51,6 +61,49 @@ set $mod Mod4
 set $terminal i3-sensible-terminal
 bindsym $mod+Return exec $terminal
 ```
+
+#### String Interpolation
+
+Double-quoted strings support variable interpolation:
+
+```i3
+set $theme dark
+set $status "i3status -c $theme"
+set $separator "8 px"
+set $launcher "rofi -font 'Noto Sans $font_size'"
+```
+
+Single-quoted strings remain literal (no interpolation).
+
+Inside interpolated strings, `\$` escapes the dollar sign so it is treated as a literal character rather than a variable reference.
+
+Interpolation also works inside arrays:
+
+```i3
+set $workspaces ["1: Dev", "$ws2", bar.main.position]
+```
+
+#### Block References
+
+Reference properties from processed blocks using dotted paths:
+
+```i3
+bar "main" {
+    status_command i3status
+    position top
+}
+
+set $bar_pos bar.main.position
+set $bar_cmd bar.main.status_command
+```
+
+Block references without an identifier match the first entry of that block type:
+
+```i3
+set $first_cmd bar.status_command
+```
+
+Unresolved block references resolve to an empty string.
 
 #### Array Values
 
@@ -82,6 +135,14 @@ Commands are the main building blocks of i3 configs. They consist of a command h
 ```i3
 bindsym $mod+Return exec i3-sensible-terminal
 exec --no-startup-id nm-applet
+```
+
+Command heads can include dots, matching i3's color class syntax:
+
+```i3
+client.focused #4c7899 #285577 #ffffff #2e9ef4 #285577
+client.focused_inactive #333333 #5f676a #ffffff #484e50 #5f676a
+client.unfocused #333333 #222222 #888888 #292d2e #222222
 ```
 
 #### Criteria
@@ -365,6 +426,15 @@ class CountingVisitor implements ConfigVisitor<void> {
 | `Quoted(value, char)` | Quoted string | `"value"` or `'value'` |
 | `VariableRef(name)` | `$name` reference | `$name` |
 | `ArrayValue(items)` | `[item, ...]` | `[item1, item2]` |
+| `InterpolatedString(segments, quoteChar)` | `"literal $var literal"` | `"literal $var literal"` |
+| `BlockReference(path)` | `blockType.identifier.property` | `blockType.identifier.property` |
+
+`InterpolatedString` contains `ValueSegment` nodes:
+
+| Segment Type | Description |
+|------|-------------|
+| `ValueSegmentLiteral(text)` | Plain text inside an interpolated string |
+| `ValueSegmentVariableReference(name)` | `$name` inside an interpolated string |
 
 ### Formatter API Reference
 

@@ -63,6 +63,7 @@ class Assignment extends Statement {
   final String variable;
   final AssignmentOperator operator;
   final List<Value> values;
+  String? trailingComment;          // Inline comment text (without `#` prefix)
   
   Assignment(this.variable, this.operator, this.values, [super.span]);
   
@@ -105,6 +106,7 @@ class Command extends Statement {
   final List<Value> args;
   final List<Criterion>? criteria;
   final Block? block;               // Non-null for commands that open blocks
+  String? trailingComment;          // Inline comment text (without `#` prefix)
 
   Command(this.head, this.args, [this.criteria, this.block, SourceSpan? span])
       : super(span);
@@ -113,8 +115,11 @@ class Command extends Statement {
 }
 ```
 
+Command heads support dotted names like `client.focused`, `client.background`, etc.
+Hex color values (e.g. `#4c7899`, `#ffffff`) are parsed as `BareArg` value types.
+
 ### Comment
-Represents comments.
+Represents comments. Supports both full-line comments and inline trailing comments after commands/assignments.
 
 ```dart
 class Comment extends ConfigElement {
@@ -134,30 +139,104 @@ sealed class Value {
   SourceSpan? span;
 
   Value([this.span]);
+
+  String toConfigString();
+  Map<String, dynamic> toJson();
+  static Value fromJson(Map<String, dynamic> json);
 }
 ```
 
 ### BareArg
-Bare (unquoted) argument values.
+Bare (unquoted) argument values. Hex color values (`#4c7899`, `#ffffff`) are also parsed as `BareArg`.
 
 ```dart
 class BareArg extends Value {
   final String value;
-
   BareArg(this.value, [super.span]);
 }
+```
 
+### Quoted
+Quoted string values.
+
+```dart
 class Quoted extends Value {
   final String value;
   final String quoteChar;
-
   Quoted(this.value, this.quoteChar, [super.span]);
 }
+```
 
+### VariableRef
+Variable references (`$name`).
+
+```dart
 class VariableRef extends Value {
   final String name;
-
   VariableRef(this.name, [super.span]);
+}
+```
+
+### ArrayValue
+Array values (`[item, ...]`).
+
+```dart
+class ArrayValue extends Value {
+  final List<Value> items;
+  ArrayValue(this.items, [super.span]);
+}
+```
+
+### InterpolatedString
+Double-quoted strings with variable interpolation (`"hello $world"`).
+
+```dart
+class InterpolatedString extends Value {
+  final List<ValueSegment> segments;
+  final String quoteChar;
+  InterpolatedString(this.segments, this.quoteChar, [super.span]);
+}
+```
+
+### BlockReference
+Dotted-path reference to a block property (`bar.main.position`).
+
+```dart
+class BlockReference extends Value {
+  final List<String> path;
+  BlockReference(this.path, [super.span]);
+}
+```
+
+### ValueSegment (Sealed)
+Base class for segments inside an `InterpolatedString`.
+
+```dart
+sealed class ValueSegment {
+  const ValueSegment();
+  String toConfigString();
+  Map<String, dynamic> toJson();
+  factory ValueSegment.fromJson(Map<String, dynamic> json);
+}
+```
+
+### ValueSegmentLiteral
+Plain text segment inside an interpolated string.
+
+```dart
+class ValueSegmentLiteral extends ValueSegment {
+  final String text;
+  const ValueSegmentLiteral(this.text);
+}
+```
+
+### ValueSegmentVariableReference
+Variable reference segment inside an interpolated string.
+
+```dart
+class ValueSegmentVariableReference extends ValueSegment {
+  final String name;
+  const ValueSegmentVariableReference(this.name);
 }
 ```
 
@@ -249,6 +328,7 @@ class Context {
   final Map<String, dynamic> variables;
   final Map<String, String> options;
   final Context? parent;
+  ErrorHandler? errorHandler;
   
   Context({this.parent});
   
@@ -260,6 +340,16 @@ class Context {
   // Variable expansion
   String expandVariables(String text);
   
+  // Block registry
+  final Map<String, Map<String?, Map<String, dynamic>>> blockRegistry;
+  void registerBlock(String blockType, String? identifier, Map<String, dynamic> properties);
+  String resolveBlockReference(BlockReference ref);
+  
+  // Error reporting
+  void reportError(String message, {SourceSpan? span});
+  bool reportUnresolvedVariables;
+  bool reportUnresolvedBlockReferences;
+  
   // Context management
   Context createChild();
   void mergeChild(Context child);
@@ -267,6 +357,17 @@ class Context {
 ```
 
 ## Handler Interfaces
+
+### ErrorHandler
+Interface for processing error handlers.
+
+```dart
+abstract class ErrorHandler {
+  void handleError(String message, Context context, {SourceSpan? span});
+}
+```
+
+The `span` parameter provides source location information when available.
 
 ### CommandHandler
 Interface for command handlers.

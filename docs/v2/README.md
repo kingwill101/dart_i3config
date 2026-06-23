@@ -36,6 +36,11 @@ for (final element in config.statements) {
 - **Handler System**: Extensible command and block handlers
 - **Scoped Commands**: Commands that only work within specific blocks
 - **Variable Expansion**: Dynamic variable resolution with scoping
+- **String Interpolation**: Double-quoted strings support `$variable` references
+- **Block References**: Reference block properties via dotted paths like `bar.main.position`
+- **Dotted Command Heads**: Commands with dotted names like `client.focused`, `client.background` parse as a single head
+- **Hex Color Values**: `#` prefixed hex colors (`#4c7899`, `#ffffff`) parsed as bare arguments
+- **Error Reporting**: Configurable warnings for unresolved references with source spans
 - **Async Support**: Asynchronous handler processing
 - **Array Handling**: Built-in support for array operations
 - **Context Management**: Hierarchical variable and option scoping
@@ -159,6 +164,49 @@ bar "top" {
 ```
 
 Blocks also create child contexts. Variables set inside a block are scoped to that block, while parent/global variables remain readable unless shadowed.
+
+### String Interpolation
+
+Double-quoted strings support `$variable` interpolation. Single-quoted strings remain literal.
+
+```i3
+set $theme dark
+set $status "i3status -c $theme"
+set $launcher "rofi -font 'Noto Sans $font_size'"
+```
+
+Arrays can also contain interpolated strings and block references:
+
+```i3
+set $workspaces ["$ws1", "$ws2", bar.main.position]
+```
+
+### Block References
+
+Reference block properties using dotted paths:
+
+```i3
+bar "main" {
+    status_command i3status
+    position top
+}
+
+set $bar_pos bar.main.position
+set $bar_cmd bar.main.status_command
+```
+
+Block references without an identifier match the first entry of that block type:
+
+```i3
+set $first_cmd bar.status_command
+```
+
+To enable warnings for unresolved references:
+
+```dart
+processor.context.reportUnresolvedVariables = true;
+processor.context.reportUnresolvedBlockReferences = true;
+```
 
 ## Examples
 
