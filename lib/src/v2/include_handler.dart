@@ -107,7 +107,7 @@ class IncludeHandler extends BaseCommandHandler<void> {
       }
     } catch (e) {
       context.errorHandler?.handleError(
-        ConfigCompositionException('Failed to process included file: $e', path),
+        'Failed to process included file: $e',
         context,
       );
     }

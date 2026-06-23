@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:i3config/src/v2/context.dart';
 import 'package:i3config/src/v2/ast.dart';
+import 'package:source_span/source_span.dart';
 
 /// Handler for specific command types.
 abstract class CommandHandler {
@@ -89,5 +90,5 @@ abstract class BlockHandlerRegistry {
 /// Error handler for processing errors.
 abstract class ErrorHandler {
   /// Handle a processing error.
-  void handleError(dynamic error, Context context);
+  void handleError(String message, Context context, {SourceSpan? span});
 }
