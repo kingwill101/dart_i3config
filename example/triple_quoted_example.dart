@@ -20,7 +20,7 @@ void main() {
     '"""',
     '',
     '# Triple-quoted string in an array (comma-separated)',
-    r'set $fonts ["Noto Sans", """10""", "Noto Mono", """11, Antialias=true"""]',
+    'set \$fonts ["Noto Sans", """10""", "Noto Mono", """11, Antialias=true"""]',
   ].join('\n');
 
   final config = Config.parse(configSource);

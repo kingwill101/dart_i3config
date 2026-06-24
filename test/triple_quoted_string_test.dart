@@ -61,12 +61,7 @@ void main() {
       expect(tq.toConfigString(), equals('"""hello\nworld"""'));
     });
 
-    test('toConfigString escapes internal delimiter', () {
-      final tq = TripleQuoted('foo"""bar', '"""');
-      expect(tq.toConfigString(), equals('"""foo"""bar"""'));
-    });
-
-    test('toConfigString escapes backslashes', () {
+    test('toConfigString preserves backslash-laden content', () {
       final tq = TripleQuoted(r'path\to\file', '"""');
       expect(tq.toConfigString(), equals(r'''"""path\to\file"""'''));
     });
@@ -76,12 +71,49 @@ void main() {
       expect(tq.toConfigString(), equals("'''it's here'''"));
     });
 
-    test('toConfigString escapes internal \'\'\' delimiter', () {
-      final tq = TripleQuoted("foo'''bar", "'''");
-      expect(tq.toConfigString(), equals("'''foo'''bar'''"));
+    test('toConfigString auto-switches delimiter when content contains """', () {
+      final tq = TripleQuoted('foo"""bar', '"""');
+      final out = tq.toConfigString();
+      expect(out, equals("'''foo\"\"\"bar'''"));
     });
 
-    test('parse and format roundtrip', () {
+    test('toConfigString auto-switches delimiter when content contains \'\'\'', () {
+      final tq = TripleQuoted("foo'''bar", "'''");
+      final out = tq.toConfigString();
+      expect(out, equals('"""foo\'\'\'bar"""'));
+    });
+
+    test('toConfigString fallback to single-quoted when both delimiters present', () {
+      final tq = TripleQuoted('""" and \'\'\'', '"""');
+      final out = tq.toConfigString();
+      expect(out, startsWith("'"));
+      expect(out, endsWith("'"));
+    });
+
+    test('toConfigString output with auto-switch round-trips', () {
+      final tq = TripleQuoted('foo"""bar', '"""');
+      final out = tq.toConfigString();
+      final reparsed = Config.parse('set \$x $out');
+      final cmd = reparsed.statements.whereType<Command>().first;
+      expect((cmd.args[1] as TripleQuoted).value, equals(tq.value));
+    });
+
+    test('toConfigString fallback to single-quoted round-trips', () {
+      final tq = TripleQuoted('""" and \'\'\'', '"""');
+      final out = tq.toConfigString();
+      final reparsed = Config.parse('set \$x $out');
+      final cmd = reparsed.statements.whereType<Command>().first;
+      final arg = cmd.args[1];
+      if (arg is TripleQuoted) {
+        expect(arg.value, equals(tq.value));
+      } else if (arg is Quoted) {
+        expect(arg.value, equals(tq.value));
+      } else {
+        fail('Expected TripleQuoted or Quoted, got ${arg.runtimeType}');
+      }
+    });
+
+    test('parse, format, and re-parse roundtrip', () {
       final content = 'set \$title "My Title"\nset \$body """Line 1\nLine 2\nLine 3"""';
       final config = Config.parse(content);
       final formatter = ConfigFormatter();
@@ -89,6 +121,9 @@ void main() {
       expect(output, contains('"""Line 1'));
       expect(output, contains('Line 2'));
       expect(output, contains('Line 3"""'));
+      final reparsed = Config.parse(output);
+      final cmd = reparsed.statements.whereType<Command>().last;
+      expect((cmd.args[1] as TripleQuoted).value, equals('Line 1\nLine 2\nLine 3'));
     });
 
     test('parser reports error on unclosed triple-quoted string', () {

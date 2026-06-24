@@ -114,7 +114,28 @@ workspace = ["1: Dev", "2: Term"]
 workspace += ["3: Mail"]
 ```
 
-Array items are comma-separated. Items can be any value type (bare args, quoted strings, variable refs, or nested arrays). Trailing commas are rejected.
+Array items are comma-separated. Items can be any value type (bare args, quoted strings, triple-quoted strings, variable refs, or nested arrays). Trailing commas are rejected.
+
+#### Triple-Quoted Strings
+
+Multi-line literal strings delimited by `"""` or `'''`:
+
+```i3
+bindsym $mod+Return exec --no-startup-id """
+  kitty --class "terminal" \
+    -e "fish -l"
+"""
+```
+
+Content is taken literally — no escape sequence processing and no variable interpolation. Backslashes, blank lines, and single/double quotes (outside the delimiter sequence) are preserved as-is.
+
+Triple-quoted strings work in any value position, including arrays:
+
+```i3
+set $fonts ["Noto Sans", """10 px""", "Noto Mono"]
+```
+
+When the content contains the delimiter (e.g. `"""` inside a `"""`-delimited string), the formatter automatically switches to the alternate delimiter. If the content contains both `"""` and `'''`, a single-quoted string is used instead.
 
 ### Assignment Operators
 
@@ -412,6 +433,7 @@ class CountingVisitor implements ConfigVisitor<void> {
 |------|-------------|-------------------|
 | `BareArg(value)` | Unquoted value | `value` |
 | `Quoted(value, char)` | Quoted string | `"value"` or `'value'` |
+| `TripleQuoted(value, delimiter)` | Multi-line literal | `"""value"""` or `'''value'''` |
 | `VariableRef(name)` | `$name` reference | `$name` |
 | `ArrayValue(items)` | `[item, ...]` | `[item1, item2]` |
 | `InterpolatedString(segments, quoteChar)` | `"literal $var literal"` | `"literal $var literal"` |

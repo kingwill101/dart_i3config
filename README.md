@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/kingwill101/dart_i3config)](LICENSE)
 [![GitHub](https://img.shields.io/badge/repo-github-blue)](https://github.com/kingwill101/dart_i3config)
 
-A Dart library for parsing and processing i3/Sway configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, string interpolation, block references, dotted command heads, hex color value support, inline comments, and a virtual filesystem for testing.
+A Dart library for parsing and processing i3/Sway configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, string interpolation, block references, triple-quoted strings, dotted command heads, hex color value support, inline comments, and a virtual filesystem for testing.
 
 ## Table of Contents
 
@@ -82,6 +82,7 @@ void main() {
 - **Block References** — reference block properties via dotted paths like `bar.main.position`
 - **Dotted Command Heads** — commands with dotted names (`client.focused`, `client.background`) parse as a single head
 - **Hex Color Values** — `#`-prefixed hex colors parsed as bare arguments
+- **Triple-Quoted Strings** — multi-line literal strings with `"""..."""` and `'''...'''`
 - **File Imports** — `include` with variable expansion, nesting, and circular detection
 - **Pluggable Filesystem** — `PhysicalFileSystem` for production, `VirtualFileSystem` for tests
 - **Error Reporting** — configurable warnings for unresolved references with source spans
@@ -123,6 +124,19 @@ Omitting the identifier matches the first block of that type:
 ```i3
 set $first_cmd  bar.status_command
 ```
+
+### Triple-Quoted Strings
+
+Multi-line literal strings delimited by `"""` or `'''`:
+
+```i3
+bindsym $mod+Return exec --no-startup-id """
+  kitty --class "terminal" \
+    -e "fish -l"
+"""
+```
+
+Content is taken literally — no escape processing or variable interpolation. The formatter auto-switches delimiters when content contains `"""` or `'''`, or falls back to a single-quoted string if both are present.
 
 ### Dotted Command Heads
 
@@ -313,6 +327,7 @@ Full runnable examples are in the [example/](example/) directory:
 - `formatter_example.dart` — formatting config AST back to text
 - `block_scoped_handlers_example.dart` — block-scoped command handlers
 - `command_value_extraction_example.dart` — extracting values from commands
+- `triple_quoted_example.dart` — multi-line triple-quoted strings
 
 ## Documentation
 

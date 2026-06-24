@@ -1,3 +1,15 @@
+## 2.5.0
+
+### Features
+- **Triple-quoted strings** — Multi-line literal strings delimited by `"""..."""` and `'''...'''`. Content is taken literally — no escape processing or variable interpolation. Preprocessing correctly preserves triple-quoted regions during line-continuation joining and blank-line removal (`lib/src/value.dart`, `lib/src/grammar.dart`)
+- **`TripleQuoted` AST node** — New `Value` subtype with `value`, `delimiter` fields, `toConfigString()` with auto-switching delimiter (falls back to single-quoted when content contains both `"""` and `'''`), and JSON serialization (`lib/src/value.dart`)
+- **Exhaustiveness** — `TripleQuoted` cases added to all `expandValue` switch statements in `BaseCommandHandler`, `BaseBlockHandler`, `CommandValueExtraction`, `ValueExpander`, and both processor states
+
+### Documentation
+- New `doc/language-guide.md` section: "Triple-Quoted Strings" covering syntax, literal semantics, and automatic delimiter switching
+- Updated `README.md` with triple-quoted strings in Key Features, Language Features, and Examples list
+- New `example/triple_quoted_example.dart` demonstrating multi-line exec commands, variable assignment, array use, and formatter idempotency
+
 ## 2.4.1
 
 - Renamed `docs/` to `doc/` per Pub layout convention

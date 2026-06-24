@@ -97,6 +97,10 @@ class Quoted extends Value {
 ///
 /// Supports both `"""..."""` and `'''...'''` delimiters.
 /// Content is taken literally — no escape sequence processing.
+///
+/// When the content contains the current delimiter, the alternate delimiter
+/// is used automatically. If the content contains both `"""` and `'''`,
+/// a single-quoted string is output instead.
 class TripleQuoted extends Value {
   final String value;
   final String delimiter; // '"""' or "'''"
@@ -107,7 +111,19 @@ class TripleQuoted extends Value {
   String toString() => 'TripleQuoted($delimiter$value$delimiter)';
 
   @override
-  String toConfigString() => '$delimiter$value$delimiter';
+  String toConfigString() {
+    if (!value.contains(delimiter)) {
+      return '$delimiter$value$delimiter';
+    }
+    // Auto-switch to the alternate delimiter if the content contains
+    // the current one but not the alternate.
+    final alt = delimiter == '"""' ? "'''" : '"""';
+    if (!value.contains(alt)) {
+      return '$alt$value$alt';
+    }
+    // Both delimiters present in content — fall back to single-quoted.
+    return "'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'";
+  }
 
   @override
   Map<String, dynamic> toJson() => {
