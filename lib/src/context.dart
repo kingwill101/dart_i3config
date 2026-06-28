@@ -38,7 +38,7 @@ import 'package:source_span/source_span.dart';
 ///   dynamic onSet(String name, dynamic value, Context ctx) => value;
 ///
 ///   @override
-///   dynamic onGet(String name, dynamic? value, Context ctx) => value;
+///   dynamic onGet(String name, dynamic value, Context ctx) => value;
 ///
 ///   @override
 ///   String? onExpand(String text, Context ctx) {
@@ -57,7 +57,7 @@ abstract class VariableMiddleware {
 
   /// Called after a value is retrieved. Return the value to return to the
   /// caller, or `null` to block access.
-  dynamic onGet(String name, dynamic? value, Context context);
+  dynamic onGet(String name, dynamic value, Context context);
 
   /// Called before variable expansion in a string. Return the modified
   /// text to expand, or `null` to skip expansion entirely.
@@ -67,7 +67,7 @@ abstract class VariableMiddleware {
 /// Context object that holds processing state and configuration.
 class Context {
   /// Variables defined during processing (e.g., from 'set' commands).
-  /// Values can be String, List<String>, or other dynamic types.
+  /// Values can be `String`, `List<String>`, or other dynamic types.
   final Map<String, dynamic> variables = {};
 
   /// Current processing state.
@@ -136,7 +136,7 @@ class Context {
 
   /// Set a variable value in the current scope.
   /// Runs through registered [VariableMiddleware.onSet] hooks.
-  /// Value can be String, List<String>, or other dynamic types.
+  /// Value can be `String`, `List<String>`, or other dynamic types.
   void setVariable(String name, dynamic value) {
     var result = value;
     for (final mw in _variableMiddleware) {
@@ -150,7 +150,7 @@ class Context {
   /// Runs through registered [VariableMiddleware.onGet] hooks from both
   /// the source context (where the variable is defined) and the requesting
   /// context (where the variable is accessed).
-  /// Returns the raw value (String, List<String>, etc.).
+  /// Returns the raw value (`String`, `List<String>`, etc.).
   dynamic getVariable(String name) {
     // First check current context
     if (variables.containsKey(name)) {
