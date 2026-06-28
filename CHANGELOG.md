@@ -1,3 +1,21 @@
+## 2.6.0
+
+### Features
+- **Typed context accessors** — `Context.getString()`, `getList()`, `getBool()`, and `getVariableAs<T>()` provide type-safe variable retrieval with defaults (`lib/src/context.dart`)
+- **`Context.expandValue()`** — Public instance method replaces duplicated private `_expandValue` implementations across processor states, base handlers, and mixins (`lib/src/context.dart`)
+- **`blockRegistry` helpers** — `getChildBlock()`, `getAllBlocks()`, and `countBlock()` provide convenient access to registered block data (`lib/src/context.dart`)
+- **Variable middleware** — New `VariableMiddleware` interface with `onSet`/`onGet`/`onExpand` hooks enables redaction, transformation, validation, and audit logging of variable operations (`lib/src/context.dart`)
+- **Processor-level variable middleware** — `ConfigProcessor.registerVariableMiddleware()` propagates middleware to the root context and all child block contexts automatically, so a single registration covers all variable operations during processing (`lib/src/processor.dart`)
+
+### Fixes
+- **`processChildren` async semantics** — Processor now checks `is Future` instead of `!= null`, so async handlers that `return null` correctly fall through to default child processing instead of silently skipping it (`lib/src/state.dart`)
+- **Command identifier exposure** — `Context.currentBlockIdentifier` is set before the handler lifecycle begins, making command args (e.g., host names) available during `handle()`, `processChildren()`, and `afterChildrenProcessed()` (`lib/src/context.dart`, `lib/src/state.dart`)
+- **`ConfigElement.parent` pointer** — Added optional `parent` field to base AST class; `buildBlockHierarchy()` now sets parent links on all nodes including `Command.block` children (`lib/src/ast.dart`)
+
+### Documentation
+- Expanded `BlockHandler` interface docs with full handler lifecycle explanation (handle → processChildren → afterChildrenProcessed), data availability at each stage, and `blockRegistry` usage (`lib/src/handlers.dart`)
+- Expanded `DefaultChildProcessing` mixin docs explaining the async null semantics (`lib/src/mixin.dart`)
+
 ## 2.5.0
 
 ### Features

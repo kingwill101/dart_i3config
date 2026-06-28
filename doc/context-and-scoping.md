@@ -9,6 +9,8 @@ The context system provides hierarchical variable and option management:
 - **Block Context**: Scoped variables within blocks
 - **Variable Expansion**: Dynamic resolution with inheritance
 - **Context Inheritance**: Child contexts inherit from parent contexts
+- **Variable Middleware**: Extensible hooks for intercepting variable operations
+- **Typed Accessors**: Type-safe variable retrieval methods
 
 ## Context Hierarchy
 
@@ -73,7 +75,7 @@ class BindsymHandler extends BaseCommandHandler<void> {
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);      // $mod+Return -> Mod4+Return
     final action = command.args.length > 1
-        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        ? command.args.skip(1).map((v) => context.expandValue(v)).join(' ')
         : '';                                              // exec $terminal -> exec alacritty
     
     print('Binding: $key -> $action');
@@ -227,7 +229,7 @@ class BindsymHandler extends BaseCommandHandler<void> {
     // getArgAsString automatically expands variables
     final key = command.getArgAsString(0, context);      // $mod+Return -> Mod4+Return
     final action = command.args.length > 1
-        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        ? command.args.skip(1).map((v) => context.expandValue(v)).join(' ')
         : '';                                              // exec $terminal -> exec alacritty
     
     // Manual expansion if needed
@@ -295,6 +297,233 @@ class ExecHandler extends BaseCommandHandler<void> {
     print('Executing: $command');
   }
 }
+```
+
+## Variable Middleware
+
+Middleware intercepts variable operations at three points: `onSet` (before storing), `onGet` (after retrieval), and `onExpand` (before variable substitution in strings). Multiple middleware chain in registration order.
+
+### Redaction Middleware
+
+```dart
+class SensitiveMiddleware implements VariableMiddleware {
+  final Set<String> _keys;
+
+  SensitiveMiddleware(this._keys);
+
+  @override
+  dynamic onSet(String name, dynamic value, Context context) => value;
+
+  @override
+  dynamic onGet(String name, dynamic? value, Context context) => value;
+
+  @override
+  String? onExpand(String text, Context context) {
+    for (final key in _keys) {
+      text = text.replaceAll('\$$key', '<SENSITIVE>');
+    }
+    return text;
+  }
+}
+
+final context = Context();
+context.registerVariableMiddleware(SensitiveMiddleware({'password'}));
+context.setVariable('password', 's3cret123');
+
+print(context.expandVariables('login with $password')); // login with <SENSITIVE>
+print(context.getVariable('password')); // s3cret123 (raw value preserved)
+```
+
+### Transform Middleware
+
+```dart
+class PrefixMiddleware implements VariableMiddleware {
+  @override
+  dynamic onSet(String name, dynamic value, Context context) => value;
+
+  @override
+  dynamic onGet(String name, dynamic? value, Context context) {
+    if (value is String) return 'PREFIX:$value';
+    return value;
+  }
+
+  @override
+  String? onExpand(String text, Context context) => null;
+}
+```
+
+### Reject Middleware
+
+```dart
+class RejectingMiddleware implements VariableMiddleware {
+  @override
+  dynamic onSet(String name, dynamic value, Context context) => null; // Reject all sets
+
+  @override
+  dynamic onGet(String name, dynamic? value, Context context) => value;
+
+  @override
+  String? onExpand(String text, Context context) => null;
+}
+```
+
+### Skip Expansion Middleware
+
+Returning `null` from `onExpand` skips variable expansion entirely for the given text:
+
+```dart
+class SkipExpandMiddleware implements VariableMiddleware {
+  @override
+  dynamic onSet(String name, dynamic value, Context context) => value;
+
+  @override
+  dynamic onGet(String name, dynamic? value, Context context) => value;
+
+  @override
+  String? onExpand(String text, Context context) => null; // Skip expansion
+}
+```
+
+### Chaining Middleware
+
+Multiple middleware run in registration order. Each middleware receives the output of the previous one:
+
+```dart
+context.registerVariableMiddleware(UppercaseMiddleware());  // "val" -> "VAL"
+context.registerVariableMiddleware(PrefixMiddleware());     // "VAL" -> "PREFIX:VAL"
+context.setVariable('key', 'val');
+print(context.getVariable('key')); // "PREFIX:VAL"
+```
+
+### Middleware and Context Inheritance
+
+Child context middleware also applies to inherited parent values:
+
+```dart
+final parent = Context();
+parent.setVariable('shared', 'value');
+
+final child = parent.pushContext();
+child.registerVariableMiddleware(SuffixMiddleware());
+
+print(child.getVariable('shared')); // "value_suffix" (child middleware applied)
+```
+
+## Typed Variable Accessors
+
+Context provides type-safe accessors that avoid manual casting:
+
+```dart
+context.setVariable('count', '42');
+context.setVariable('name', 'alice');
+context.setVariable('items', ['a', 'b', 'c']);
+context.setVariable('enabled', 'true');
+
+final count = context.getVariableAs<int>('count');     // 42
+final name  = context.getString('name');               // "alice"
+final items = context.getList('items');                // ["a", "b", "c"]
+final enabled = context.getBool('enabled');            // true
+```
+
+These accessors:
+- `getVariableAs<T>(name)` — casts the value to `T`, returns `null` on mismatch
+- `getString(name)` — returns the variable as `String?`
+- `getList(name)` — returns the variable as `List<String>?`
+- `getBool(name)` — parses `"true"`/`"false"` strings to `bool?`
+
+## Public expandValue()
+
+The `expandValue(Value)` method on `Context` resolves any `Value` AST node through variable expansion:
+
+```dart
+final raw = Quoted('hello $name');
+final expanded = context.expandValue(raw);
+print(expanded); // "hello alice"
+```
+
+This replaces the previously private `_expandValue` implementations duplicated across processor states, base handlers, and mixins — now a single public method on Context.
+
+## Processor-Level Variable Middleware
+
+Middleware can be registered at the `ConfigProcessor` level to automatically apply to all contexts created during processing:
+
+```dart
+final processor = ConfigProcessor();
+
+// All variable operations in every context will uppercase values
+processor.registerVariableMiddleware(UppercaseMiddleware());
+
+await processor.processString('''
+set \$name alice
+block "scope" {
+    set \$role admin
+}
+''');
+
+print(processor.context.getVariable('name')); // ALICE
+print(processor.context.getVariable('role')); // ADMIN
+```
+
+Processor-level middleware is propagated to the root context and every child block context pushed during processing. It runs before context-level middleware in the registration chain, so context-level middleware can further transform values after processor middleware has run.
+
+### Middleware Registration Order
+
+When both processor-level and context-level middleware are registered:
+
+```dart
+final processor = ConfigProcessor();
+processor.registerVariableMiddleware(UppercaseMiddleware());  // processor level
+
+await processor.processString('set \$x hello');
+
+processor.context.registerVariableMiddleware(PrefixMiddleware()); // context level
+
+processor.context.setVariable('y', 'val');
+// y passes through UppercaseMiddleware first ("val" -> "VAL"),
+// then PrefixMiddleware ("VAL" -> "PREFIX:VAL")
+print(processor.context.getVariable('y')); // "PREFIX:VAL"
+```
+
+## Block Identifier Access
+
+During block processing, `context.currentBlockIdentifier` exposes the block's command-level identifier:
+
+```dart
+class HostBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'host';
+
+  @override
+  void handle(Block block, Context context) {
+    final hostname = context.currentBlockIdentifier;
+    print('Processing host: $hostname');
+  }
+}
+```
+
+Processed against: `host "web-01" { ... }` → `hostname = "web-01"`.
+
+This is set by the processor before calling any handler lifecycle methods (`handle`, `processChildren`, `afterChildrenProcessed`).
+
+## AST Hierarchy Navigation
+
+Access parent references and build block hierarchies:
+
+```dart
+final config = Config.parse('''
+host "web-01" {
+    set $addr "10.0.0.1"
+}
+''');
+
+// Navigate child -> parent
+final block = config.statements.first as Block;
+final child = block.body.first;
+print(child.parent == block); // true
+
+// Build full hierarchy map
+final hierarchy = config.buildBlockHierarchy();
+// hierarchy maps each block to parent -> children
 ```
 
 ## Context Management in Handlers

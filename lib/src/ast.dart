@@ -13,7 +13,12 @@ sealed class ConfigElement {
   /// Source span for this element (optional for backwards compatibility)
   SourceSpan? span;
 
-  ConfigElement([this.span]);
+  /// Parent element in the AST (null if at top level).
+  /// This is NOT populated by the parser by default; use buildBlockHierarchy()
+  /// to establish links for Block and Command nodes.
+  ConfigElement? parent;
+
+  ConfigElement([this.span, this.parent]);
 
   /// Set the source span for this element
   void setSpan(SourceSpan span) => this.span = span;
@@ -277,28 +282,35 @@ class ParseError extends Error {
 
 /// Build block hierarchy by establishing parent-child relationships.
 ///
-/// This function traverses the configuration and sets the `parentBlock` field
-/// on all nested blocks. By default, blocks parsed from configuration do not
-/// have their parent references set for performance reasons.
+/// This function traverses the configuration and sets the `parent` field
+/// on all nested AST nodes and the `parentBlock` field on nested blocks.
+/// By default, blocks parsed from configuration do not have their parent
+/// references set for performance reasons.
 ///
 /// Example:
 /// ```dart
 /// final config = Config.parse(configContent);
 /// buildBlockHierarchy(config);
 ///
-/// // Now blocks have parent references
+/// // Now elements have parent references
 /// final nestedBlock = someBlock;
-/// final parent = nestedBlock.parentBlock; // Not null if nested
+/// final parent = nestedBlock.parent; // Not null if nested
 /// ```
 void buildBlockHierarchy(Config config) {
-  void linkBlocks(List<ConfigElement> elements, Block? parent) {
+  void linkElements(List<ConfigElement> elements, ConfigElement? parent) {
     for (final element in elements) {
+      element.parent = parent;
       if (element is Block) {
-        element.parentBlock = parent;
-        linkBlocks(element.body, element);
+        element.parentBlock = parent is Block ? parent : null;
+        linkElements(element.body, element);
+      } else if (element is Command && element.block != null) {
+        final block = element.block!;
+        block.parent = element;
+        block.parentBlock = null;
+        linkElements(block.body, block);
       }
     }
   }
 
-  linkBlocks(config.statements, null);
+  linkElements(config.statements, null);
 }

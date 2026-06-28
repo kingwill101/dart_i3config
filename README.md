@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/kingwill101/dart_i3config)](LICENSE)
 [![GitHub](https://img.shields.io/badge/repo-github-blue)](https://github.com/kingwill101/dart_i3config)
 
-A Dart library for parsing and processing i3/Sway configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, string interpolation, block references, triple-quoted strings, dotted command heads, hex color value support, inline comments, and a virtual filesystem for testing.
+A Dart library for parsing and processing i3/Sway configuration files. Includes a state machine processor with pluggable handlers, scoped contexts, variable expansion, file imports, string interpolation, block references, triple-quoted strings, dotted command heads, hex color value support, inline comments, variable middleware for extensible value interception, and a virtual filesystem for testing.
 
 ## Table of Contents
 
@@ -87,8 +87,13 @@ void main() {
 - **Pluggable Filesystem** — `PhysicalFileSystem` for production, `VirtualFileSystem` for tests
 - **Error Reporting** — configurable warnings for unresolved references with source spans
 - **Async Support** — handlers can be sync or async; the processor awaits them
+- **Variable Middleware** — intercept and transform variable set/get/expand operations with pluggable middleware
 - **Array Handling** — built-in support for array operations via `+=`
 - **Context Management** — hierarchical variable and option scoping
+- **Block Hierarchy** — navigate parent/child relationships via `ConfigElement.parent` and `buildBlockHierarchy()`
+- **Typed Variable Access** — `getVariableAs<T>()`, `getString()`, `getList()`, `getBool()` on Context
+- **Block Registry Helpers** — `getChildBlock()`, `getAllBlocks()`, `countBlock()` for querying registered blocks
+- **Public expandValue()** — manually expand Value AST nodes through the context
 
 ## Language Features
 
@@ -268,6 +273,107 @@ bar "top" {
 ```
 
 Inside a `bar` block, `status_command` and `position` resolve through bar-scoped handlers. Outside, those handlers are inactive.
+
+## Variable Middleware
+
+Middleware intercepts variable `set`, `get`, and `expand` operations. Use it for redaction, transformation, validation, audit logging, or cache invalidation.
+
+### Context-Level Middleware
+
+Register middleware on a specific context:
+
+```dart
+class SensitiveMiddleware implements VariableMiddleware {
+  final Set<String> _keys;
+
+  SensitiveMiddleware(this._keys);
+
+  @override
+  dynamic onSet(String name, dynamic value, Context context) => value;
+
+  @override
+  dynamic onGet(String name, dynamic? value, Context context) => value;
+
+  @override
+  String? onExpand(String text, Context context) {
+    for (final key in _keys) {
+      text = text.replaceAll('\$$key', '<SENSITIVE>');
+    }
+    return text;
+  }
+}
+
+final context = Context();
+context.registerVariableMiddleware(SensitiveMiddleware({'password', 'token'}));
+
+context.setVariable('password', 's3cret123');
+print(context.expandVariables('login with $password')); // login with <SENSITIVE>
+print(context.getVariable('password')); // s3cret123 (raw value preserved)
+```
+
+Middleware can also transform values on set/get, block access by returning `null`, or skip expansion by returning `null` from `onExpand`. Multiple middleware chain in registration order.
+
+### Processor-Level Middleware
+
+Register middleware on the processor instead — it automatically propagates to the root context and all child block contexts created during processing:
+
+```dart
+final processor = ConfigProcessor();
+
+// All variables will be uppercased across every context
+processor.registerVariableMiddleware(UppercaseMiddleware());
+
+await processor.processString('''
+set \$name alice
+block "scope" {
+    set \$role admin
+}
+''');
+
+print(processor.context.getVariable('name')); // ALICE
+print(processor.context.getVariable('role')); // ADMIN
+```
+
+Processor-level middleware runs before context-level middleware in the chain. Register middleware on the processor before calling `process()` or `processString()` to ensure it applies to all variable operations.
+
+### Block Lifecycle and Identifiers
+
+Handlers can access the current block's identifier during processing:
+
+```dart
+class HostBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'host';
+
+  @override
+  void handle(Block block, Context context) {
+    // currentBlockIdentifier set by processor before handle() is called
+    final hostname = context.currentBlockIdentifier;
+    print('Processing host: $hostname');
+  }
+}
+```
+
+### Block Hierarchy Navigation
+
+AST nodes expose parent references and hierarchy helpers:
+
+```dart
+final config = Config.parse('''
+host "web-01" {
+    set $addr "10.0.0.1"
+}
+''');
+
+// Navigate from child to parent
+final block = config.statements.first as Block;
+final child = block.body.first;
+print(child.parent == block); // true
+
+// Build a full hierarchy map
+final hierarchy = config.buildBlockHierarchy();
+// hierarchy[block] contains parent -> children relationships
+```
 
 ## Assignments and Arrays
 

@@ -19,9 +19,16 @@ abstract class BlockHandler {
   void registerScopedCommands(BlockHandlerRegistry registry) {}
   
   /// Override to customize child processing.
-  /// Return null (default) for automatic sequential processing.
-  /// Return non-null to take manual control.
+  /// Return null (default, via [DefaultChildProcessing]) for automatic
+  /// sequential processing.
+  /// Return any non-null value to take manual control.
   FutureOr<void>? processChildren(Block block, Context context);
+}
+
+abstract class BaseBlockHandler extends BlockHandler {
+  /// Called after all children have been processed.
+  /// Only available on [BaseBlockHandler] subclasses.
+  FutureOr<void> afterChildrenProcessed(Block block, Context context) {}
 }
 ```
 

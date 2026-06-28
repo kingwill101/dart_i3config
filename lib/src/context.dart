@@ -1,12 +1,73 @@
 import 'package:i3config/src/handlers.dart';
 import 'package:i3config/src/state.dart';
-import 'package:i3config/src/value.dart' show BlockReference;
+import 'package:i3config/src/value.dart'
+    show
+        Value,
+        Quoted,
+        TripleQuoted,
+        VariableRef,
+        BareArg,
+        ArrayValue,
+        InterpolatedString,
+        ValueSegmentLiteral,
+        ValueSegmentVariableReference,
+        BlockReference;
 import 'package:source_span/source_span.dart';
+
+/// Hook for intercepting variable operations on a [Context].
+///
+/// Implement this to add cross-cutting behavior around variable lifecycle:
+/// - **Redaction** — mask sensitive values in logs, output, or interpolation
+/// - **Transformation** — normalize, encrypt, or derive values on set/get
+/// - **Validation** — reject values that don't meet criteria
+/// - **Audit logging** — track reads, writes, and expansions
+/// - **Cache invalidation** — react to variable changes
+///
+/// Multiple middleware are chained in registration order. Any middleware
+/// can short-circuit by returning `null` (reject set/get) or `null` from
+/// `onExpand` (skip expansion of the text).
+///
+/// Example — sensitive value redaction in expand output:
+/// ```dart
+/// class SensitiveMiddleware implements VariableMiddleware {
+///   final Set<String> _keys;
+///
+///   SensitiveMiddleware(this._keys);
+///
+///   @override
+///   dynamic onSet(String name, dynamic value, Context ctx) => value;
+///
+///   @override
+///   dynamic onGet(String name, dynamic? value, Context ctx) => value;
+///
+///   @override
+///   String? onExpand(String text, Context ctx) {
+///     // Replace variable references before substitution.
+///     for (final key in _keys) {
+///       text = text.replaceAll('\$$key', '<SENSITIVE>');
+///     }
+///     return text;
+///   }
+/// }
+/// ```
+abstract class VariableMiddleware {
+  /// Called before a value is stored. Return the value to store, or `null`
+  /// to reject the set operation.
+  dynamic onSet(String name, dynamic value, Context context);
+
+  /// Called after a value is retrieved. Return the value to return to the
+  /// caller, or `null` to block access.
+  dynamic onGet(String name, dynamic? value, Context context);
+
+  /// Called before variable expansion in a string. Return the modified
+  /// text to expand, or `null` to skip expansion entirely.
+  String? onExpand(String text, Context context);
+}
 
 /// Context object that holds processing state and configuration.
 class Context {
   /// Variables defined during processing (e.g., from 'set' commands).
-  /// Values can be String, List&ltString&gt, or other dynamic types.
+  /// Values can be String, List<String>, or other dynamic types.
   final Map<String, dynamic> variables = {};
 
   /// Current processing state.
@@ -14,6 +75,12 @@ class Context {
 
   /// Current block type being processed (null if at global scope).
   String? currentBlockType;
+
+  /// Current block identifier being processed (null if not applicable).
+  /// Set by the processor before calling block handlers so handlers can
+  /// access the command-level identifier (e.g., host name) during their
+  /// lifecycle (handle, processChildren, afterChildrenProcessed).
+  String? currentBlockIdentifier;
 
   /// Parent context for scoping (null for global context).
   final Context? parentContext;
@@ -43,8 +110,16 @@ class Context {
   /// If true, report warnings for unresolved block references.
   bool reportUnresolvedBlockReferences = false;
 
+  /// Registered variable middleware, run in order.
+  final List<VariableMiddleware> _variableMiddleware = [];
+
   /// Create a new processing context.
   Context({this.parentContext, this.errorHandler});
+
+  /// Register a [VariableMiddleware] to intercept variable operations.
+  void registerVariableMiddleware(VariableMiddleware middleware) {
+    _variableMiddleware.add(middleware);
+  }
 
   /// Report an error through the error handler with optional source span.
   void reportError(String message, {SourceSpan? span}) {
@@ -60,24 +135,47 @@ class Context {
   }
 
   /// Set a variable value in the current scope.
-  /// Value can be String, List&lt;String&gt;, or other dynamic types.
+  /// Runs through registered [VariableMiddleware.onSet] hooks.
+  /// Value can be String, List<String>, or other dynamic types.
   void setVariable(String name, dynamic value) {
-    variables[name] = value;
+    var result = value;
+    for (final mw in _variableMiddleware) {
+      result = mw.onSet(name, result, this);
+      if (result == null) return;
+    }
+    variables[name] = result;
   }
 
   /// Get a variable value, searching up the context chain.
-  /// Returns the raw value (String, List&lt;String&gt;, etc.).
+  /// Runs through registered [VariableMiddleware.onGet] hooks from both
+  /// the source context (where the variable is defined) and the requesting
+  /// context (where the variable is accessed).
+  /// Returns the raw value (String, List<String>, etc.).
   dynamic getVariable(String name) {
     // First check current context
     if (variables.containsKey(name)) {
-      return variables[name];
+      var result = variables[name];
+      for (final mw in _variableMiddleware) {
+        result = mw.onGet(name, result, this);
+        if (result == null) return null;
+      }
+      return result;
     }
 
     // Then check parent contexts
     Context? current = parentContext;
     while (current != null) {
       if (current.variables.containsKey(name)) {
-        return current.variables[name];
+        var result = current.variables[name];
+        for (final mw in current._variableMiddleware) {
+          result = mw.onGet(name, result, current);
+          if (result == null) return null;
+        }
+        for (final mw in _variableMiddleware) {
+          result = mw.onGet(name, result, this);
+          if (result == null) return null;
+        }
+        return result;
       }
       current = current.parentContext;
     }
@@ -86,38 +184,37 @@ class Context {
   }
 
   /// Expand variables in a string, searching up the context chain.
+  /// Runs through registered [VariableMiddleware.onExpand] hooks.
   String expandVariables(String text) {
     String result = text;
 
-    // Collect all variables from the entire context chain.
-    // Parent contexts are added first so that child (local) values
-    // take precedence when they share a key.
-    final allVariables = <String, String>{};
+    // Apply expansion middleware before variable substitution
+    for (final mw in _variableMiddleware) {
+      final expanded = mw.onExpand(result, this);
+      if (expanded == null) return result;
+      result = expanded;
+    }
+
+    // Collect all variable names from the entire context chain.
+    final allNames = <String>{};
     Context? current = this;
-    // Walk to the root first to collect ancestors.
-    final chain = <Context>[];
     while (current != null) {
-      chain.add(current);
+      allNames.addAll(current.variables.keys);
       current = current.parentContext;
     }
-    // Apply from root to leaf so local scope wins.
-    for (final ctx in chain.reversed) {
-      ctx.variables.forEach((name, value) {
-        allVariables[name] = _valueToString(value);
-      });
-    }
 
-    if (allVariables.isEmpty) return result;
+    if (allNames.isEmpty) return result;
 
-    // Sort by length descending to avoid prefix collisions ($mod1 before $mod)
-    final names = allVariables.keys.toList()
+    final names = allNames.toList()
       ..sort((a, b) => b.length.compareTo(a.length));
     final pattern = RegExp(
       r'\$(' + names.map(RegExp.escape).join('|') + r')(?![a-zA-Z0-9_])',
     );
     result = result.replaceAllMapped(pattern, (m) {
       final key = m.group(1)!;
-      return allVariables[key]!;
+      final val = getVariable(key);
+      if (val == null) return m.group(0) ?? '';
+      return _valueToString(val);
     });
 
     return result;
@@ -129,6 +226,97 @@ class Context {
     if (value is String) return value;
     if (value is List) return value.join(' ');
     return value.toString();
+  }
+
+  /// Expand a [Value] by resolving variables in this context.
+  /// This is the public equivalent of the internal `_expandValue` helpers
+  /// found in state.dart, base_handlers.dart, and mixin.dart.
+  String expandValue(Value value) {
+    switch (value) {
+      case Quoted quoted:
+        return expandVariables(quoted.value);
+      case TripleQuoted triple:
+        return triple.value;
+      case VariableRef varRef:
+        final resolved = getVariable(varRef.name);
+        if (resolved != null) return resolved;
+        if (reportUnresolvedVariables) {
+          reportError('Unknown variable: \$${varRef.name}', span: varRef.span);
+        }
+        return '\$${varRef.name}';
+      case BareArg bareArg:
+        return expandVariables(bareArg.value);
+      case ArrayValue array:
+        return array.items.map((v) => expandValue(v)).join(', ');
+      case InterpolatedString interpolated:
+        return _expandInterpolatedString(interpolated);
+      case BlockReference blockRef:
+        return resolveBlockReference(blockRef);
+    }
+  }
+
+  String _expandInterpolatedString(InterpolatedString str) {
+    final buffer = StringBuffer();
+    for (final seg in str.segments) {
+      if (seg is ValueSegmentLiteral) {
+        buffer.write(seg.text);
+      } else if (seg is ValueSegmentVariableReference) {
+        final resolved = getVariable(seg.name);
+        if (resolved is List) {
+          buffer.writeAll(resolved, ' ');
+        } else if (resolved != null) {
+          buffer.write(resolved);
+        } else {
+          if (reportUnresolvedVariables) {
+            reportError('Unknown variable: \$${seg.name}', span: null);
+          }
+          buffer.write('\$${seg.name}');
+        }
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Get a variable with a specific type, returning null if not set or wrong type.
+  /// Goes through [VariableMiddleware.onGet] hooks.
+  T? getVariableAs<T>(String name) => getVariable(name) as T?;
+
+  /// Get a string variable, returning [defaultValue] if not set.
+  /// Goes through [VariableMiddleware.onGet] hooks.
+  String getString(String name, [String defaultValue = '']) {
+    final val = getVariable(name);
+    if (val is String) return val;
+    return defaultValue;
+  }
+
+  /// Get a list variable as `List<String>`, returning empty list if not set.
+  /// Goes through [VariableMiddleware.onGet] hooks.
+  List<String> getList(String name) {
+    final val = getVariable(name);
+    if (val is List) return val.map((e) => e.toString()).toList();
+    return const [];
+  }
+
+  /// Get a boolean variable from common true/false string representations.
+  /// Goes through [VariableMiddleware.onGet] hooks.
+  bool getBool(String name, [bool defaultValue = false]) {
+    final val = getVariable(name);
+    if (val is bool) return val;
+    if (val is String) {
+      switch (val.toLowerCase()) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'off':
+          return false;
+      }
+    }
+    return defaultValue;
   }
 
   /// Get the global context (root of the context chain).
@@ -152,6 +340,35 @@ class Context {
     blockRegistry.putIfAbsent(blockType, () => {})[identifier] = Map.from(
       properties,
     );
+  }
+
+  /// Get properties of a registered block by type and identifier.
+  ///
+  /// Returns `null` if no block of [type] with the given [identifier] exists.
+  /// The identifier can be `null` for blocks without an explicit identifier.
+  Map<String, dynamic>? getChildBlock(String type, String? identifier) {
+    return blockRegistry[type]?[identifier];
+  }
+
+  /// Get all registered blocks of a given [type].
+  ///
+  /// Returns a list of property maps for every block of the given type.
+  /// Returns an empty list if no blocks of that type are registered.
+  /// Each element is the property map that was passed to [registerBlock].
+  List<Map<String, dynamic>> getAllBlocks(String type) {
+    final entries = blockRegistry[type];
+    if (entries == null) return const [];
+    return entries.values.where((e) => e.isNotEmpty).toList();
+  }
+
+  /// Count how many blocks of a given [type] have been registered.
+  ///
+  /// Returns the number of non-empty block entries of the given type.
+  /// Returns 0 if no blocks of that type are registered.
+  int countBlock(String type) {
+    final entries = blockRegistry[type];
+    if (entries == null) return 0;
+    return entries.values.where((e) => e.isNotEmpty).length;
   }
 
   /// Resolve a [BlockReference] against the block registry.

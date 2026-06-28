@@ -16,6 +16,38 @@ abstract class CommandHandler {
 }
 
 /// Handler for specific block types.
+///
+/// ## Handler Lifecycle
+///
+/// When a block is processed, the following lifecycle methods are called
+/// in order:
+///
+/// 1. `handle(block, context)` — Setup/initialization. Called once when
+///    the block is entered.
+/// 2. `processChildren(block, context)` — Child processing. Return `null`
+///    to use automatic sequential processing, or a `Future<void>` to
+///    provide custom processing.
+/// 3. `afterChildrenProcessed(block, context)` — Post-processing. Called
+///    after all children have been processed. Use this for validation,
+///    aggregation, or cleanup that needs child results.
+///
+/// ## Data Availability
+///
+/// - During `handle()`: Context variables from parent scopes are available,
+///   but child commands have not yet run.
+/// - During `processChildren()`: Default processing runs child commands,
+///   populating context variables. Custom processing can inspect or
+///   reorder `block.body`.
+/// - During `afterChildrenProcessed()`: All child commands have run,
+///   context variables are fully populated, and `blockRegistry` contains
+///   any blocks processed during this block's scope.
+///
+/// ## BlockRegistry
+///
+/// Child blocks register their data via `Context.registerBlock()`, making
+/// it available to parent handlers through `Context.blockRegistry`.
+/// Use `getChildBlock()`, `getAllBlocks()`, and `countBlock()` helpers
+/// for convenient access.
 abstract class BlockHandler {
   /// Handle a block with the given context.
   /// Can return a Future for async operations or void for sync operations.
@@ -27,41 +59,14 @@ abstract class BlockHandler {
   /// Register block-scoped command handlers for this block type.
   /// Override this method to register commands that should only be active
   /// within this block type.
-  ///
-  /// Example:
-  /// ```dart
-  /// @override
-  /// void registerScopedCommands(BlockHandlerRegistry registry) {
-  ///   registry.registerCommand('status_command', BarStatusCommandHandler());
-  ///   registry.registerCommand('position', BarPositionCommandHandler());
-  /// }
-  /// ```
   void registerScopedCommands(BlockHandlerRegistry registry) {
     // Default: no scoped commands
   }
 
   /// Process child elements of the block.
   ///
-  /// **Default behavior**: Returns `null`, which triggers automatic sequential processing.
-  ///
-  /// **Override** to customize child processing:
-  /// - Filter which children to process
-  /// - Reorder children before processing
-  /// - Multi-pass processing
-  /// - Conditional execution
-  ///
-  /// Example:
-  /// ```dart
-  /// @override
-  /// Future<void> processChildren(Block block, Context context) async {
-  ///   // Filter and process only certain children
-  ///   for (final child in block.body.where((e) => shouldProcess(e))) {
-  ///     await processElement(child, context);
-  ///   }
-  /// }
-  /// ```
-  ///
-  /// Return `null` (default) for automatic processing.
+  /// Return `null` for automatic sequential processing.
+  /// Return a `Future<void>` for custom async processing.
   FutureOr<void>? processChildren(Block block, Context context);
 }
 

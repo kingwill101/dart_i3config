@@ -1,6 +1,6 @@
 import 'package:i3config/src/ast.dart';
 import 'package:i3config/src/builtin.dart';
-import 'package:i3config/src/context.dart' show Context;
+import 'package:i3config/src/context.dart' show Context, VariableMiddleware;
 import 'package:i3config/src/handlers.dart';
 import 'package:i3config/src/include_handler.dart';
 import 'package:i3config/src/state.dart' show ProcessorState, InitialState;
@@ -17,6 +17,9 @@ class ConfigProcessor implements BlockHandlerRegistry {
 
   /// The filesystem used by built-in handlers (e.g. [IncludeHandler]).
   final FileSystem fileSystem;
+
+  /// Processor-level variable middleware, propagated to all contexts.
+  final List<VariableMiddleware> _variableMiddleware = [];
 
   /// Constructor that automatically registers built-in handlers.
   ///
@@ -42,6 +45,15 @@ class ConfigProcessor implements BlockHandlerRegistry {
   Context get context =>
       _contextStack.isNotEmpty ? _contextStack.last : _context;
 
+  /// Register a [VariableMiddleware] at the processor level.
+  ///
+  /// The middleware is propagated to all contexts created during processing
+  /// (root context and child block contexts). Processor-level middleware runs
+  /// before context-level middleware in the chain.
+  void registerVariableMiddleware(VariableMiddleware middleware) {
+    _variableMiddleware.add(middleware);
+  }
+
   /// Push a new state onto the stack.
   void pushState(ProcessorState state) {
     _stateStack.add(state);
@@ -55,7 +67,9 @@ class ConfigProcessor implements BlockHandlerRegistry {
   /// Push a new context onto the context stack.
   void pushContext() {
     final currentContext = context;
-    _contextStack.add(currentContext.pushContext());
+    final child = currentContext.pushContext();
+    _propagateMiddleware(child);
+    _contextStack.add(child);
   }
 
   /// Pop the current context from the context stack.
@@ -65,12 +79,24 @@ class ConfigProcessor implements BlockHandlerRegistry {
     }
   }
 
+  /// Copy processor-level middleware onto a context.
+  void _propagateMiddleware(Context ctx) {
+    for (final mw in _variableMiddleware) {
+      ctx.registerVariableMiddleware(mw);
+    }
+  }
+
   /// Process a configuration.
   /// Returns a Future that completes when all processing is done.
   /// Handlers can be sync or async - the processor waits for async handlers to complete.
   Future<void> process(Config config) async {
     pushState(InitialState());
     _context.currentState = InitialState();
+
+    // Propagate processor middleware to the root context
+    // before processing starts, so all variable operations are intercepted
+    _propagateMiddleware(_context);
+
     // Store processor reference for manual processing (if needed)
     _context.options['_processor'] = this;
 

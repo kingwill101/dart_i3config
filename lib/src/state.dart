@@ -179,6 +179,12 @@ class CommandProcessingState extends ProcessorState {
     final previousBlockType = processor.context.currentBlockType;
     processor.context.currentBlockType = command.head;
 
+    final identifier = command.args.isNotEmpty
+        ? _expandValue(command.args.first, processor.context)
+        : null;
+    final previousIdentifier = processor.context.currentBlockIdentifier;
+    processor.context.currentBlockIdentifier = identifier;
+
     try {
       // Call the block handler if registered (for setup/teardown)
       if (handler != null) {
@@ -191,11 +197,9 @@ class CommandProcessingState extends ProcessorState {
           block,
           processor.context,
         );
-        if (customProcessing != null) {
-          // Handler provided custom processing
+        if (customProcessing is Future) {
           await customProcessing;
         } else {
-          // Default: automatic sequential processing
           for (final element in block.body) {
             processor.pushState(InitialState());
             try {
@@ -206,7 +210,7 @@ class CommandProcessingState extends ProcessorState {
           }
         }
 
-        // Call afterChildrenProcessed hook if handler supports it
+        // Call afterChildrenProcessed hook (BaseBlockHandler only)
         if (handler is BaseBlockHandler) {
           await handler.afterChildrenProcessed(block, processor.context);
         }
@@ -223,9 +227,7 @@ class CommandProcessingState extends ProcessorState {
       }
     } finally {
       processor.context.currentBlockType = previousBlockType;
-      final identifier = command.args.isNotEmpty
-          ? _expandValue(command.args.first, processor.context)
-          : null;
+      processor.context.currentBlockIdentifier = previousIdentifier;
       processor.context.globalContext.registerBlock(
         command.head,
         identifier,
@@ -414,12 +416,16 @@ class BlockProcessingState extends ProcessorState {
     ConfigProcessor processor, {
     BlockHandler? handlerOverride,
   }) async {
-    // Push new context for block processing (creates child context)
     processor.pushContext();
 
-    // Set the current block type for scoped handler lookup
     final previousBlockType = processor.context.currentBlockType;
     processor.context.currentBlockType = block.blockType;
+
+    final blockIdentifier = block.identifier != null
+        ? processor.context.expandValue(block.identifier!)
+        : null;
+    final previousIdentifier = processor.context.currentBlockIdentifier;
+    processor.context.currentBlockIdentifier = blockIdentifier;
 
     try {
       // Get handler (use override if provided, otherwise lookup by block type)
@@ -435,11 +441,9 @@ class BlockProcessingState extends ProcessorState {
           block,
           processor.context,
         );
-        if (customProcessing != null) {
-          // Handler provided custom processing
+        if (customProcessing is Future) {
           await customProcessing;
         } else {
-          // Default: automatic sequential processing
           for (final element in block.body) {
             processor.pushState(InitialState());
             try {
@@ -450,7 +454,7 @@ class BlockProcessingState extends ProcessorState {
           }
         }
 
-        // Call afterChildrenProcessed hook if handler supports it
+        // Call afterChildrenProcessed hook (BaseBlockHandler only)
         if (handler is BaseBlockHandler) {
           await handler.afterChildrenProcessed(block, processor.context);
         }
@@ -466,9 +470,8 @@ class BlockProcessingState extends ProcessorState {
         }
       }
     } finally {
-      // Restore previous block type
       processor.context.currentBlockType = previousBlockType;
-      // Pop context when done with block
+      processor.context.currentBlockIdentifier = previousIdentifier;
       processor.popContext();
     }
   }

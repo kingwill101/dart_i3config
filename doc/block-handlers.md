@@ -9,6 +9,17 @@ Block handlers are responsible for:
 - Registering scoped commands that only work inside the block
 - Managing block-specific context and variables
 - Customizing how child elements are processed
+- Reacting after all children are processed (with `BaseBlockHandler`)
+
+## Block Handler Lifecycle
+
+The processing pipeline follows a three-phase lifecycle:
+
+1. **`handle(Block, Context)`** — setup phase. Runs before children are processed. Access `context.currentBlockIdentifier` for the block's command-level identifier.
+2. **`processChildren(Block, Context)`** — child processing. By default children are processed sequentially. Override for custom logic.
+3. **`afterChildrenProcessed(Block, Context)`** — teardown phase (only on `BaseBlockHandler` subclasses). Runs after all children have been processed. Useful for validation, summary, or finalization.
+
+> **Note:** `afterChildrenProcessed` is only available on `BaseBlockHandler`. The `BlockHandler` interface cannot add it without breaking all existing implementations.
 
 ## Basic Block Handler
 
@@ -21,6 +32,9 @@ class BarBlockHandler extends BaseBlockHandler {
   void handle(Block block, Context context) {
     final id = getBlockIdentifier(block, context);
     print('📊 Processing bar: $id');
+    
+    // currentBlockIdentifier is also available directly on context
+    print('Identifier: ${context.currentBlockIdentifier}');
   }
   
   @override
@@ -113,6 +127,8 @@ class ThemeBlockHandler extends BaseBlockHandler {
   @override
   void handle(Block block, Context context) {
     print('🎨 Setting up theme: ${getBlockIdentifier(block, context)}');
+    // currentBlockIdentifier is set before handle() is called
+    print('Theme name: ${context.currentBlockIdentifier}');
   }
   
   @override
@@ -124,7 +140,7 @@ class ThemeBlockHandler extends BaseBlockHandler {
   
   @override
   Future<void> afterChildrenProcessed(Block block, Context context) async {
-    // Access properties set by child commands
+    // Called after all children are processed and their scoped handlers have run
     final primaryColor = context.getVariable('primary_color');
     final secondaryColor = context.getVariable('secondary_color');
     final fontSize = context.getVariable('font_size');
@@ -133,6 +149,35 @@ class ThemeBlockHandler extends BaseBlockHandler {
     print('  Primary: $primaryColor');
     print('  Secondary: $secondaryColor');
     print('  Font Size: $fontSize');
+  }
+}
+```
+
+### Block Registry Helpers
+
+Query registered blocks within a block handler:
+
+```dart
+class ServerBlockHandler extends BaseBlockHandler {
+  @override
+  String get blockType => 'server';
+  
+  @override
+  void registerScopedCommands(BlockHandlerRegistry registry) {
+    registry.registerBlockHandler('database', DatabaseBlockHandler());
+    registry.registerBlockHandler('cache', CacheBlockHandler());
+  }
+  
+  @override
+  Future<void> afterChildrenProcessed(Block block, Context context) async {
+    // Query registered child blocks
+    final dbHandler = registry.getChildBlock('database');
+    final allHandlers = registry.getAllBlocks();
+    final cacheCount = registry.countBlock('cache');
+    
+    print('Database handler: $dbHandler');
+    print('All handlers: ${allHandlers.length}');
+    print('Cache count: $cacheCount');
   }
 }
 ```

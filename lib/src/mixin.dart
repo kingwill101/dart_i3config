@@ -60,6 +60,11 @@ mixin ValueExpander {
 
 /// Provides default automatic child processing.
 /// Mix this in for standard sequential processing (most common case).
+///
+/// Returning `null` signals the processor to use default automatic processing.
+/// If you override with an `async` method, the returned `Future` signals
+/// custom processing — use `afterChildrenProcessed` instead if you need
+/// async post-processing while keeping default child processing.
 mixin DefaultChildProcessing {
   FutureOr<void>? processChildren(Block block, Context context) {
     return null; // Automatic sequential processing

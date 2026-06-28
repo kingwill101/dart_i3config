@@ -21,7 +21,7 @@ class BindsymHandler extends BaseCommandHandler<void> {
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
     final action = command.args.length > 1
-        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        ? command.args.skip(1).map((v) => context.expandValue(v)).join(' ')
         : '';
     
     print('⌨️  Binding: $key -> $action');
@@ -196,7 +196,7 @@ class I3BindsymHandler extends BaseCommandHandler<void> {
   void handle(Command command, Context context) {
     final key = command.getArgAsString(0, context);
     final action = command.args.length > 1
-        ? command.args.skip(1).map((v) => expandValue(v, context)).join(' ')
+        ? command.args.skip(1).map((v) => context.expandValue(v)).join(' ')
         : '';
     
     print('⌨️  Key binding: $expandedKey -> $expandedAction');
@@ -219,7 +219,7 @@ class AssignHandler extends BaseCommandHandler<void> {
   @override
   void handle(Command command, Context context) {
     final criteriaStr = command.criteria
-        ?.map((c) => '${c.key}=${expandValue(c.value, context)}')
+        ?.map((c) => '${c.key}=${context.expandValue(c.value)}')
         .join(', ');
     final workspace = command.getArgAsString(0, context);
     
