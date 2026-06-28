@@ -233,21 +233,35 @@ inventory {
       expect(numVal, isA<int>());
     });
 
-    test('no typed accessors (getString, getList, getBool)', () {
-      final context = Context();
-      context.setVariable('str', 'hello');
-      context.setVariable('arr', ['a', 'b']);
+    test(
+      'typed accessors (getString, getList, getBool, getInt, getDouble)',
+      () {
+        final context = Context();
+        context.setVariable('str', 'hello');
+        context.setVariable('arr', ['a', 'b']);
+        context.setVariable('count', '42');
+        context.setVariable('pi', '3.14');
+        context.setVariable('enabled', 'true');
 
-      // getVariable returns dynamic; there are no typed accessors
-      final strVal = context.getVariable('str');
-      expect(strVal, isA<String>());
+        expect(context.getString('str'), 'hello');
+        expect(context.getString('missing'), '');
+        expect(context.getString('missing', 'fallback'), 'fallback');
 
-      final arrVal = context.getVariable('arr');
-      expect(arrVal, isA<List>());
-      // List<dynamic> requires manual casting
-      final list = arrVal as List<dynamic>;
-      expect(list.map((e) => e as String).toList(), ['a', 'b']);
-    });
+        expect(context.getList('arr'), ['a', 'b']);
+        expect(context.getList('missing'), []);
+
+        expect(context.getBool('enabled'), true);
+        expect(context.getBool('missing'), false);
+
+        expect(context.getInt('count'), 42);
+        expect(context.getInt('pi'), isNull); // not an int
+        expect(context.getInt('missing'), isNull);
+
+        expect(context.getDouble('pi'), 3.14);
+        expect(context.getDouble('count'), 42.0); // int promotes to double
+        expect(context.getDouble('missing'), isNull);
+      },
+    );
 
     test('no distinction between unset and empty string', () {
       final context = Context();
@@ -276,12 +290,25 @@ host "web-01" {
       expect(hosts, containsPair('web-01', containsPair('addr', '10.0.0.1')));
     });
 
-    test('no getChildBlock / getAllBlocks / countBlock helpers', () {
+    test('getChildBlock / getAllBlocks / countBlock helpers', () {
       final context = Context();
 
-      // User must navigate blockRegistry manually via nested map access
-      final hosts = context.blockRegistry;
-      expect(hosts, isEmpty);
+      context.registerBlock('host', 'web-01', {'ip': '10.0.0.1'});
+      context.registerBlock('host', 'web-02', {'ip': '10.0.0.2'});
+      context.registerBlock('network', null, {'dns': '8.8.8.8'});
+
+      expect(context.countBlock('host'), 2);
+      expect(context.countBlock('network'), 1);
+      expect(context.countBlock('unknown'), 0);
+
+      expect(context.getChildBlock('host', 'web-01'), {'ip': '10.0.0.1'});
+      expect(context.getChildBlock('host', 'missing'), isNull);
+
+      expect(context.getAllBlocks('host'), [
+        {'ip': '10.0.0.1'},
+        {'ip': '10.0.0.2'},
+      ]);
+      expect(context.getAllBlocks('unknown'), []);
     });
   });
 

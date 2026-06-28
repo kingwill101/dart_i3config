@@ -1,3 +1,8 @@
+## 2.6.1
+
+### Features
+- **Additional typed accessors** — `getInt()` and `getDouble()` on `Context` parse numeric values from strings via `int.tryParse`/`double.tryParse`, with `getDouble()` also promoting `int` values (`lib/src/context.dart`)
+
 ## 2.6.0
 
 ### Features

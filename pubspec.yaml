@@ -7,7 +7,7 @@ topics:
 executables:
   i3fmt: i3fmt
   
-version: 2.6.0
+version: 2.6.1
 repository: https://github.com/kingwill101/dart_i3config
 
 funding:

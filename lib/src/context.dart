@@ -281,12 +281,31 @@ class Context {
   /// Goes through [VariableMiddleware.onGet] hooks.
   T? getVariableAs<T>(String name) => getVariable(name) as T?;
 
-  /// Get a string variable, returning [defaultValue] if not set.
+  /// Get a string variable, returning [defaultValue] if not set or wrong type.
   /// Goes through [VariableMiddleware.onGet] hooks.
   String getString(String name, [String defaultValue = '']) {
     final val = getVariable(name);
     if (val is String) return val;
     return defaultValue;
+  }
+
+  /// Get an integer variable from a numeric string or int value.
+  /// Goes through [VariableMiddleware.onGet] hooks.
+  int? getInt(String name) {
+    final val = getVariable(name);
+    if (val is int) return val;
+    if (val is String) return int.tryParse(val);
+    return null;
+  }
+
+  /// Get a double variable from a numeric string or double value.
+  /// Goes through [VariableMiddleware.onGet] hooks.
+  double? getDouble(String name) {
+    final val = getVariable(name);
+    if (val is double) return val;
+    if (val is int) return val.toDouble();
+    if (val is String) return double.tryParse(val);
+    return null;
   }
 
   /// Get a list variable as `List<String>`, returning empty list if not set.
