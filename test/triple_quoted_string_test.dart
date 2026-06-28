@@ -31,8 +31,7 @@ void main() {
     });
 
     test('parses """ with blank lines (preprocessible)', () {
-      final content =
-          'set \$x """line1\n\nline2\n\n\nline3"""';
+      final content = 'set \$x """line1\n\nline2\n\n\nline3"""';
       final config = Config.parse(content);
       final cmd = config.statements.whereType<Command>().first;
       expect(cmd.args[1], isA<TripleQuoted>());
@@ -71,24 +70,33 @@ void main() {
       expect(tq.toConfigString(), equals("'''it's here'''"));
     });
 
-    test('toConfigString auto-switches delimiter when content contains """', () {
-      final tq = TripleQuoted('foo"""bar', '"""');
-      final out = tq.toConfigString();
-      expect(out, equals("'''foo\"\"\"bar'''"));
-    });
+    test(
+      'toConfigString auto-switches delimiter when content contains """',
+      () {
+        final tq = TripleQuoted('foo"""bar', '"""');
+        final out = tq.toConfigString();
+        expect(out, equals("'''foo\"\"\"bar'''"));
+      },
+    );
 
-    test('toConfigString auto-switches delimiter when content contains \'\'\'', () {
-      final tq = TripleQuoted("foo'''bar", "'''");
-      final out = tq.toConfigString();
-      expect(out, equals('"""foo\'\'\'bar"""'));
-    });
+    test(
+      'toConfigString auto-switches delimiter when content contains \'\'\'',
+      () {
+        final tq = TripleQuoted("foo'''bar", "'''");
+        final out = tq.toConfigString();
+        expect(out, equals('"""foo\'\'\'bar"""'));
+      },
+    );
 
-    test('toConfigString fallback to single-quoted when both delimiters present', () {
-      final tq = TripleQuoted('""" and \'\'\'', '"""');
-      final out = tq.toConfigString();
-      expect(out, startsWith("'"));
-      expect(out, endsWith("'"));
-    });
+    test(
+      'toConfigString fallback to single-quoted when both delimiters present',
+      () {
+        final tq = TripleQuoted('""" and \'\'\'', '"""');
+        final out = tq.toConfigString();
+        expect(out, startsWith("'"));
+        expect(out, endsWith("'"));
+      },
+    );
 
     test('toConfigString output with auto-switch round-trips', () {
       final tq = TripleQuoted('foo"""bar', '"""');
@@ -114,7 +122,8 @@ void main() {
     });
 
     test('parse, format, and re-parse roundtrip', () {
-      final content = 'set \$title "My Title"\nset \$body """Line 1\nLine 2\nLine 3"""';
+      final content =
+          'set \$title "My Title"\nset \$body """Line 1\nLine 2\nLine 3"""';
       final config = Config.parse(content);
       final formatter = ConfigFormatter();
       final output = formatter.format(config);
@@ -123,7 +132,10 @@ void main() {
       expect(output, contains('Line 3"""'));
       final reparsed = Config.parse(output);
       final cmd = reparsed.statements.whereType<Command>().last;
-      expect((cmd.args[1] as TripleQuoted).value, equals('Line 1\nLine 2\nLine 3'));
+      expect(
+        (cmd.args[1] as TripleQuoted).value,
+        equals('Line 1\nLine 2\nLine 3'),
+      );
     });
 
     test('parser reports error on unclosed triple-quoted string', () {
@@ -153,13 +165,18 @@ void main() {
       expect(restored.delimiter, equals('"""'));
     });
 
-    test('processor expandValue returns literal without variable substitution', () async {
-      final config = Config.parse('set \$name hello\nset \$body """\$name world"""');
-      final processor = ConfigProcessor();
-      processor.registerCommandHandler(SetCommandHandler());
-      await processor.process(config);
-      // body value should be literal "$name world", not "hello world"
-      expect(processor.context.getVariable('body'), equals('\$name world'));
-    });
+    test(
+      'processor expandValue returns literal without variable substitution',
+      () async {
+        final config = Config.parse(
+          'set \$name hello\nset \$body """\$name world"""',
+        );
+        final processor = ConfigProcessor();
+        processor.registerCommandHandler(SetCommandHandler());
+        await processor.process(config);
+        // body value should be literal "$name world", not "hello world"
+        expect(processor.context.getVariable('body'), equals('\$name world'));
+      },
+    );
   });
 }

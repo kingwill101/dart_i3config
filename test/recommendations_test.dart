@@ -28,24 +28,26 @@ host "web-01" {
       expect(capturedIdentifier, isNull);
     });
 
-    test('identifier stored in blockRegistry AFTER afterChildrenProcessed',
-        () async {
-      final configContent = '''
+    test(
+      'identifier stored in blockRegistry AFTER afterChildrenProcessed',
+      () async {
+        final configContent = '''
 host "web-01" {
     set \$addr "10.0.0.1"
 }
 ''';
-      final config = Config.parse(configContent);
-      final processor = ConfigProcessor();
+        final config = Config.parse(configContent);
+        final processor = ConfigProcessor();
 
-      processor.registerCommandHandler(SetCommandHandler());
-      processor.registerBlockHandler(_AfterChildrenCheckHandler());
+        processor.registerCommandHandler(SetCommandHandler());
+        processor.registerBlockHandler(_AfterChildrenCheckHandler());
 
-      await processor.process(config);
+        await processor.process(config);
 
-      final hosts = processor.context.blockRegistry['host'];
-      expect(hosts, containsPair('web-01', containsPair('addr', '10.0.0.1')));
-    });
+        final hosts = processor.context.blockRegistry['host'];
+        expect(hosts, containsPair('web-01', containsPair('addr', '10.0.0.1')));
+      },
+    );
   });
 
   group('Issue #2: processChildren return semantics', () {
@@ -58,66 +60,74 @@ host "web-01" {
       expect(result, isNull);
     });
 
-    test('BUG: async processChildren returning null DOES NOT trigger default processing',
-        () async {
-      // This test documents the bug: an async method that "returns null"
-      // actually returns a non-null Future<void>, which causes the processor
-      // to believe custom processing was provided and skip defaults.
-      final configContent = '''
+    test(
+      'BUG: async processChildren returning null DOES NOT trigger default processing',
+      () async {
+        // This test documents the bug: an async method that "returns null"
+        // actually returns a non-null Future<void>, which causes the processor
+        // to believe custom processing was provided and skip defaults.
+        final configContent = '''
 test_block {
     set \$var "value"
 }
 ''';
-      final config = Config.parse(configContent);
-      final processor = ConfigProcessor();
+        final config = Config.parse(configContent);
+        final processor = ConfigProcessor();
 
-      processor.registerCommandHandler(SetCommandHandler());
-      processor.registerBlockHandler(_NullAsyncProcessHandler());
+        processor.registerCommandHandler(SetCommandHandler());
+        processor.registerBlockHandler(_NullAsyncProcessHandler());
 
-      await processor.process(config);
+        await processor.process(config);
 
-      // BUG: Default processing is skipped even though handler "returned null"
-      expect(processor.context.getVariable('var'), isNull);
-    });
+        // BUG: Default processing is skipped even though handler "returned null"
+        expect(processor.context.getVariable('var'), isNull);
+      },
+    );
 
-    test('custom processChildren returning non-null Future skips defaults',
-        () async {
-      final configContent = '''
+    test(
+      'custom processChildren returning non-null Future skips defaults',
+      () async {
+        final configContent = '''
 test_block {
     set \$var "value"
 }
 ''';
-      final config = Config.parse(configContent);
-      final processor = ConfigProcessor();
+        final config = Config.parse(configContent);
+        final processor = ConfigProcessor();
 
-      processor.registerBlockHandler(_NonNullAsyncProcessHandler());
+        processor.registerBlockHandler(_NonNullAsyncProcessHandler());
 
-      await processor.process(config);
+        await processor.process(config);
 
-      expect(processor.context.getVariable('var'), isNull);
-    });
+        expect(processor.context.getVariable('var'), isNull);
+      },
+    );
 
-    test('async override always returns non-null Future (cannot use defaults)',
-        () async {
-      final handler = _AsyncOverrideHandler();
-      final block = Block('test', null, []);
-      final context = Context();
+    test(
+      'async override always returns non-null Future (cannot use defaults)',
+      () async {
+        final handler = _AsyncOverrideHandler();
+        final block = Block('test', null, []);
+        final context = Context();
 
-      final result = handler.processChildren(block, context);
-      expect(result, isNotNull);
-    });
+        final result = handler.processChildren(block, context);
+        expect(result, isNotNull);
+      },
+    );
   });
 
   group('Issue #3: Missing parent pointers on ConfigElement', () {
-    test('ConfigElement has parent field but it is null before buildBlockHierarchy',
-        () {
-      final child = Block('child', null, []);
-      final parent = Block('parent', null, [child]);
+    test(
+      'ConfigElement has parent field but it is null before buildBlockHierarchy',
+      () {
+        final child = Block('child', null, []);
+        Block('parent', null, [child]);
 
-      // Before buildBlockHierarchy, parent is null
-      expect(child.parent, isNull);
-      expect((child as Block).parentBlock, isNull);
-    });
+        // Before buildBlockHierarchy, parent is null
+        expect(child.parent, isNull);
+        expect((child).parentBlock, isNull);
+      },
+    );
 
     test('buildBlockHierarchy sets parent pointers', () {
       final inner = Block('inner', null, []);
@@ -175,20 +185,22 @@ inventory {
       expect(innerCmd.head, 'host');
     });
 
-    test('multi-line nested block with semicolons on separate lines parses',
-        () async {
-      final configContent = '''
+    test(
+      'multi-line nested block with semicolons on separate lines parses',
+      () async {
+        final configContent = '''
 inventory {
     host "web-01" {
         set \$addr "10.0.0.1"
-        set \$roles "[\"web\"]"
+        set \$roles "["web"]"
     }
 }
 ''';
 
-      final config = Config.parse(configContent);
-      expect(config.statements.length, 1);
-    });
+        final config = Config.parse(configContent);
+        expect(config.statements.length, 1);
+      },
+    );
   });
 
   group('Issue #5: expandValue not available as static/utility', () {
@@ -312,20 +324,22 @@ host "web-01" {
       expect(context.getVariable('hidden'), isNull);
     });
 
-    test('VariableMiddleware can redact variable references in expandVariables',
-        () {
-      final context = Context();
-      context.setVariable('password', 's3cret123');
+    test(
+      'VariableMiddleware can redact variable references in expandVariables',
+      () {
+        final context = Context();
+        context.setVariable('password', 's3cret123');
 
-      final mw = _RedactionMiddleware(['password']);
-      context.registerVariableMiddleware(mw);
+        final mw = _RedactionMiddleware(['password']);
+        context.registerVariableMiddleware(mw);
 
-      // Middleware replaces the variable reference before substitution
-      final result = context.expandVariables(r'login with $password');
-      expect(result, 'login with <REDACTED>');
-      // Raw value still accessible via getVariable
-      expect(context.getVariable('password'), 's3cret123');
-    });
+        // Middleware replaces the variable reference before substitution
+        final result = context.expandVariables(r'login with $password');
+        expect(result, 'login with <REDACTED>');
+        // Raw value still accessible via getVariable
+        expect(context.getVariable('password'), 's3cret123');
+      },
+    );
 
     test('VariableMiddleware can skip expansion by returning null', () {
       final context = Context();
@@ -358,20 +372,22 @@ host "web-01" {
       expect(child.getVariable('shared'), 'parent_val_suffix');
     });
 
-    test('middleware onExpand sees interpolated values before substitution',
-        () {
-      final context = Context();
-      context.setVariable('key', 'secret');
+    test(
+      'middleware onExpand sees interpolated values before substitution',
+      () {
+        final context = Context();
+        context.setVariable('key', 'secret');
 
-      final mw = _LoggingMiddleware();
-      context.registerVariableMiddleware(mw);
+        final mw = _LoggingMiddleware();
+        context.registerVariableMiddleware(mw);
 
-      final logs = <String>[];
-      mw.logs = logs;
+        final logs = <String>[];
+        mw.logs = logs;
 
-      context.expandVariables(r'the value is $key');
-      expect(logs, contains(r'expanding: the value is $key'));
-    });
+        context.expandVariables(r'the value is $key');
+        expect(logs, contains(r'expanding: the value is $key'));
+      },
+    );
 
     test('processor-level middleware propagates to root context', () async {
       final processor = ConfigProcessor();
@@ -397,43 +413,49 @@ block "test" {
       expect(processor.context.getVariable('x'), 'PREFIX:hello');
     });
 
-    test('processor-level middleware respects registration order with context-level',
-        () async {
-      final processor = ConfigProcessor();
-      // Processor: uppercase first
-      processor.registerVariableMiddleware(_UppercaseMiddleware());
+    test(
+      'processor-level middleware respects registration order with context-level',
+      () async {
+        final processor = ConfigProcessor();
+        // Processor: uppercase first
+        processor.registerVariableMiddleware(_UppercaseMiddleware());
 
-      await processor.processString('set \$x hello');
+        await processor.processString('set \$x hello');
 
-      // Then register context-level prefix middleware
-      processor.context.registerVariableMiddleware(_PrefixMiddleware());
+        // Then register context-level prefix middleware
+        processor.context.registerVariableMiddleware(_PrefixMiddleware());
 
-      // Processor middleware runs first (uppercase), then context (prefix)
-      processor.context.setVariable('y', 'val');
-      expect(processor.context.getVariable('y'), 'PREFIX:VAL');
-    });
+        // Processor middleware runs first (uppercase), then context (prefix)
+        processor.context.setVariable('y', 'val');
+        expect(processor.context.getVariable('y'), 'PREFIX:VAL');
+      },
+    );
 
-    test('processor middleware on set propagates through processString',
-        () async {
-      final processor = ConfigProcessor();
-      processor.registerVariableMiddleware(_UppercaseMiddleware());
+    test(
+      'processor middleware on set propagates through processString',
+      () async {
+        final processor = ConfigProcessor();
+        processor.registerVariableMiddleware(_UppercaseMiddleware());
 
-      await processor.processString('''
+        await processor.processString('''
 set \$name alice
 set \$greeting "hello \$name"
 ''');
 
-      // All variables should be uppercased by processor middleware
-      expect(processor.context.getVariable('name'), 'ALICE');
-      expect(processor.context.getVariable('greeting'), 'HELLO ALICE');
-    });
+        // All variables should be uppercased by processor middleware
+        expect(processor.context.getVariable('name'), 'ALICE');
+        expect(processor.context.getVariable('greeting'), 'HELLO ALICE');
+      },
+    );
   });
 
   group('Issue #9: Error reporting with source location', () {
     test('reportError accepts optional SourceSpan', () {
       final context = Context();
-      expect(() => context.reportError('test error', span: null),
-          returnsNormally);
+      expect(
+        () => context.reportError('test error', span: null),
+        returnsNormally,
+      );
     });
 
     test('parse errors include line/column', () {
@@ -472,58 +494,57 @@ test_block {
 
   group('Issue #10: Handler lifecycle documentation', () {
     test(
-        'afterChildrenProcessed is only called on BaseBlockHandler subclasses',
-        () async {
-      final phases = <String>[];
-      final configContent = '''
+      'afterChildrenProcessed is only called on BaseBlockHandler subclasses',
+      () async {
+        final phases = <String>[];
+        final configContent = '''
 test_block {
     inner_cmd
 }
 ''';
-      final config = Config.parse(configContent);
-      final processor = ConfigProcessor();
+        final config = Config.parse(configContent);
+        final processor = ConfigProcessor();
 
-      // Plain BlockHandler implementation - afterChildrenProcessed won't be called
-      processor.registerBlockHandler(
-        _PlainLifecycleHandler(phases),
-      );
-      processor.registerCommandHandler(_TrackingCmdHandler('inner_cmd', phases));
+        // Plain BlockHandler implementation - afterChildrenProcessed won't be called
+        processor.registerBlockHandler(_PlainLifecycleHandler(phases));
+        processor.registerCommandHandler(
+          _TrackingCmdHandler('inner_cmd', phases),
+        );
 
-      await processor.process(config);
+        await processor.process(config);
 
-      expect(phases, contains('handle'));
-      expect(phases, contains('processChildren'));
-      // afterChildrenProcessed is NOT called for plain BlockHandler
-      expect(phases, isNot(contains('afterChildrenProcessed')));
-    });
+        expect(phases, contains('handle'));
+        expect(phases, contains('processChildren'));
+        // afterChildrenProcessed is NOT called for plain BlockHandler
+        expect(phases, isNot(contains('afterChildrenProcessed')));
+      },
+    );
 
-    test('afterChildrenProcessed runs after all children on BaseBlockHandler',
-        () async {
-      final phases = <String>[];
-      final configContent = '''
+    test(
+      'afterChildrenProcessed runs after all children on BaseBlockHandler',
+      () async {
+        final phases = <String>[];
+        final configContent = '''
 test_block {
     cmd_a
     cmd_b
     cmd_c
 }
 ''';
-      final config = Config.parse(configContent);
-      final processor = ConfigProcessor();
+        final config = Config.parse(configContent);
+        final processor = ConfigProcessor();
 
-      processor.registerBlockHandler(
-        _BaseLifecycleHandler(phases),
-      );
-      processor.registerCommandHandler(
-        _TrackingCmdHandler(null, phases),
-      );
+        processor.registerBlockHandler(_BaseLifecycleHandler(phases));
+        processor.registerCommandHandler(_TrackingCmdHandler(null, phases));
 
-      await processor.process(config);
+        await processor.process(config);
 
-      final afterIdx = phases.indexOf('afterChildrenProcessed');
-      expect(afterIdx, greaterThan(0));
-      // afterChildrenProcessed is the last lifecycle stage
-      expect(afterIdx, equals(phases.length - 1));
-    });
+        final afterIdx = phases.indexOf('afterChildrenProcessed');
+        expect(afterIdx, greaterThan(0));
+        // afterChildrenProcessed is the last lifecycle stage
+        expect(afterIdx, equals(phases.length - 1));
+      },
+    );
   });
 }
 
@@ -551,15 +572,12 @@ class _IdentifierCapturingBlockHandler implements BlockHandler {
   FutureOr<void>? processChildren(Block block, Context context) => null;
 }
 
-class _AfterChildrenCheckHandler implements BlockHandler {
+class _AfterChildrenCheckHandler extends BaseBlockHandler {
   @override
   String get blockType => 'host';
 
   @override
   void handle(Block block, Context context) {}
-
-  @override
-  void registerScopedCommands(BlockHandlerRegistry registry) {}
 
   @override
   FutureOr<void>? processChildren(Block block, Context context) {
@@ -590,7 +608,7 @@ class _DefaultProcessHandler implements BlockHandler {
   FutureOr<void>? processChildren(Block block, Context context) => null;
 }
 
-class _NullAsyncProcessHandler implements BlockHandler {
+class _NullAsyncProcessHandler extends BaseBlockHandler {
   @override
   String get blockType => 'test_block';
 
@@ -598,27 +616,21 @@ class _NullAsyncProcessHandler implements BlockHandler {
   void handle(Block block, Context context) {}
 
   @override
-  void registerScopedCommands(BlockHandlerRegistry registry) {}
-
-  @override
   Future<void> processChildren(Block block, Context context) async {
     // Even returning null from async yields non-null Future<void>
-    return null;
+    return;
   }
 
   @override
   FutureOr<void> afterChildrenProcessed(Block block, Context context) {}
 }
 
-class _NonNullAsyncProcessHandler implements BlockHandler {
+class _NonNullAsyncProcessHandler extends BaseBlockHandler {
   @override
   String get blockType => 'test_block';
 
   @override
   void handle(Block block, Context context) {}
-
-  @override
-  void registerScopedCommands(BlockHandlerRegistry registry) {}
 
   @override
   Future<void> processChildren(Block block, Context context) async {
@@ -629,7 +641,7 @@ class _NonNullAsyncProcessHandler implements BlockHandler {
   FutureOr<void> afterChildrenProcessed(Block block, Context context) {}
 }
 
-class _AsyncOverrideHandler implements BlockHandler {
+class _AsyncOverrideHandler extends BaseBlockHandler {
   @override
   String get blockType => 'test';
 
@@ -637,11 +649,8 @@ class _AsyncOverrideHandler implements BlockHandler {
   void handle(Block block, Context context) {}
 
   @override
-  void registerScopedCommands(BlockHandlerRegistry registry) {}
-
-  @override
   Future<void> processChildren(Block block, Context context) async {
-    return null;
+    return;
   }
 
   @override
@@ -770,7 +779,7 @@ class _UppercaseMiddleware implements VariableMiddleware {
   }
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) => value;
+  dynamic onGet(String name, dynamic value, Context context) => value;
 
   @override
   String? onExpand(String text, Context context) => null;
@@ -781,7 +790,7 @@ class _RejectingMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => null;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) => value;
+  dynamic onGet(String name, dynamic value, Context context) => value;
 
   @override
   String? onExpand(String text, Context context) => null;
@@ -792,7 +801,7 @@ class _PrefixMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => value;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) {
+  dynamic onGet(String name, dynamic value, Context context) {
     if (value is String) return 'PREFIX:$value';
     return value;
   }
@@ -806,8 +815,8 @@ class _SuffixMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => value;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) {
-    if (value is String) return '$value\_suffix';
+  dynamic onGet(String name, dynamic value, Context context) {
+    if (value is String) return '${value}_suffix';
     return value;
   }
 
@@ -820,7 +829,7 @@ class _BlockGetMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => value;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) => null;
+  dynamic onGet(String name, dynamic value, Context context) => null;
 
   @override
   String? onExpand(String text, Context context) => null;
@@ -834,7 +843,7 @@ class _RedactionMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => value;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) => value;
+  dynamic onGet(String name, dynamic value, Context context) => value;
 
   @override
   String? onExpand(String text, Context context) {
@@ -850,7 +859,7 @@ class _SkipExpandMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => value;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) => value;
+  dynamic onGet(String name, dynamic value, Context context) => value;
 
   @override
   String? onExpand(String text, Context context) => null;
@@ -863,7 +872,7 @@ class _LoggingMiddleware implements VariableMiddleware {
   dynamic onSet(String name, dynamic value, Context context) => value;
 
   @override
-  dynamic onGet(String name, dynamic? value, Context context) => value;
+  dynamic onGet(String name, dynamic value, Context context) => value;
 
   @override
   String? onExpand(String text, Context context) {

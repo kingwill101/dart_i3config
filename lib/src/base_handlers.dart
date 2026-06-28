@@ -65,8 +65,7 @@ abstract class BaseCommandHandler<T> implements CommandHandler {
           buffer.write(resolved);
         } else {
           if (context.reportUnresolvedVariables) {
-            context
-                .reportError('Unknown variable: \$${seg.name}', span: null);
+            context.reportError('Unknown variable: \$${seg.name}', span: null);
           }
           buffer.write('\$${seg.name}');
         }

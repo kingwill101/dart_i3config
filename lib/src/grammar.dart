@@ -294,7 +294,11 @@ class _TripleQuoteContent extends Parser<String> {
     var position = start;
     while (position < buffer.length) {
       if (buffer.startsWith(closing, position)) {
-        return Success<String>(buffer, position, buffer.substring(start, position));
+        return Success<String>(
+          buffer,
+          position,
+          buffer.substring(start, position),
+        );
       }
       position++;
     }
@@ -316,7 +320,11 @@ Parser<Value> tripleDqString() => position()
     .map((vals) {
       final full = vals[1] as String;
       final body = full.substring(3, full.length - 3);
-      return _annotate(TripleQuoted(body, '"""'), vals[0] as int, vals[2] as int);
+      return _annotate(
+        TripleQuoted(body, '"""'),
+        vals[0] as int,
+        vals[2] as int,
+      );
     });
 
 Parser<Value> tripleSqString() => position()
@@ -330,7 +338,11 @@ Parser<Value> tripleSqString() => position()
     .map((vals) {
       final full = vals[1] as String;
       final body = full.substring(3, full.length - 3);
-      return _annotate(TripleQuoted(body, "'''"), vals[0] as int, vals[2] as int);
+      return _annotate(
+        TripleQuoted(body, "'''"),
+        vals[0] as int,
+        vals[2] as int,
+      );
     });
 
 // ===== Variables =====
@@ -936,8 +948,7 @@ class Grammar {
 
   /// Find spans of triple-quoted strings ("""...""" or '''...''')
   /// so preprocessing can skip them.
-  static List<({int start, int end})> _findTripleQuoteSpans(
-      String content) {
+  static List<({int start, int end})> _findTripleQuoteSpans(String content) {
     final spans = <({int start, int end})>[];
     int i = 0;
     while (i < content.length) {
@@ -964,7 +975,9 @@ class Grammar {
 
   /// Run [processor] on content, but preserve triple-quoted string regions.
   static String _processPreservingTripleQuotes(
-      String content, String Function(String) processor) {
+    String content,
+    String Function(String) processor,
+  ) {
     final spans = _findTripleQuoteSpans(content);
     if (spans.isEmpty) return processor(content);
 
@@ -999,13 +1012,13 @@ class Grammar {
       final line = lines[i];
       if (line.endsWith('\\')) {
         int nextLine = i + 1;
-        while (nextLine < lines.length &&
-            lines[nextLine].trim().isEmpty) {
+        while (nextLine < lines.length && lines[nextLine].trim().isEmpty) {
           nextLine++;
         }
         if (nextLine < lines.length) {
           processedLines.add(
-              '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}');
+            '${line.substring(0, line.length - 1)} ${lines[nextLine].trimLeft()}',
+          );
           i = nextLine;
         } else {
           processedLines.add(line.substring(0, line.length - 1));
@@ -1019,10 +1032,7 @@ class Grammar {
 
   /// Preprocess content to handle empty lines and whitespace
   String _preprocessContent(String content) {
-    return Grammar._processPreservingTripleQuotes(
-      content,
-      _removeBlankLines,
-    );
+    return Grammar._processPreservingTripleQuotes(content, _removeBlankLines);
   }
 
   static String _removeBlankLines(String plain) {

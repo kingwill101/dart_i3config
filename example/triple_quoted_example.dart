@@ -30,30 +30,38 @@ void main() {
     switch (element) {
       case Assignment a:
         final values = a.values
-            .map((v) => switch (v) {
-                  TripleQuoted t => '"""${t.value}"""',
-                  Quoted q => '"${q.value}"',
-                  BareArg b => b.value,
-                  ArrayValue a => '[${a.items.map((i) => i.toConfigString()).join(", ")}]',
-                  InterpolatedString i => i.segments
-                      .map((s) => s is ValueSegmentLiteral
-                          ? s.text
-                          : '\$${(s as ValueSegmentVariableReference).name}')
+            .map(
+              (v) => switch (v) {
+                TripleQuoted t => '"""${t.value}"""',
+                Quoted q => '"${q.value}"',
+                BareArg b => b.value,
+                ArrayValue a =>
+                  '[${a.items.map((i) => i.toConfigString()).join(", ")}]',
+                InterpolatedString i =>
+                  i.segments
+                      .map(
+                        (s) => s is ValueSegmentLiteral
+                            ? s.text
+                            : '\$${(s as ValueSegmentVariableReference).name}',
+                      )
                       .join(),
-                  BlockReference r => r.path.join('.'),
-                  VariableRef v => '\$${v.name}',
-                })
+                BlockReference r => r.path.join('.'),
+                VariableRef v => '\$${v.name}',
+              },
+            )
             .join(' ');
         print('  Assignment: ${a.variable} ${a.operator} $values');
 
       case Command c:
         final args = c.args
-            .map((v) => switch (v) {
-                  TripleQuoted t => '"""${t.value}"""',
-                  Quoted q => '"${q.value}"',
-                  BareArg b => b.value,
-                  _ => v.toConfigString(),
-                })
+            .map(
+              (v) => switch (v) {
+                TripleQuoted t => '"""${t.value}"""',
+                Quoted q => '"${q.value}"',
+                BareArg b => b.value,
+                _ => v.toConfigString(),
+              },
+            )
             .join(' ');
         print('  Command: ${c.head} $args');
 

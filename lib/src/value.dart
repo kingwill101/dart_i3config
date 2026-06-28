@@ -27,14 +27,14 @@ sealed class Value {
         return BareArg.fromJson(json);
       case 'ArrayValue':
         return ArrayValue.fromJson(json);
-       case 'InterpolatedString':
-         return InterpolatedString.fromJson(json);
-       case 'BlockReference':
-         return BlockReference.fromJson(json);
-       case 'TripleQuoted':
-         return TripleQuoted.fromJson(json);
-       default:
-         throw Exception('Unknown Value type: ${json['type']}');
+      case 'InterpolatedString':
+        return InterpolatedString.fromJson(json);
+      case 'BlockReference':
+        return BlockReference.fromJson(json);
+      case 'TripleQuoted':
+        return TripleQuoted.fromJson(json);
+      default:
+        throw Exception('Unknown Value type: ${json['type']}');
     }
   }
 }
